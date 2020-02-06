@@ -147,11 +147,11 @@
   "project": {
     "version": "1.0.0",
     "restore": {
-      "projectUniqueName": "C:\\Users\\Haplo\\source\\repos\\Dalamud.MbPlugin\\Dalamud.TranslatorPlugin.csproj",
+      "projectUniqueName": "C:\\Users\\Haplo\\source\\repos\\Dalamud.TLPlugin\\dalamud-translator-plugin\\Dalamud.TranslatorPlugin.csproj",
       "projectName": "Dalamud.TranslatorPlugin",
-      "projectPath": "C:\\Users\\Haplo\\source\\repos\\Dalamud.MbPlugin\\Dalamud.TranslatorPlugin.csproj",
+      "projectPath": "C:\\Users\\Haplo\\source\\repos\\Dalamud.TLPlugin\\dalamud-translator-plugin\\Dalamud.TranslatorPlugin.csproj",
       "packagesPath": "C:\\Users\\Haplo\\.nuget\\packages\\",
-      "outputPath": "C:\\Users\\Haplo\\source\\repos\\Dalamud.MbPlugin\\obj\\",
+      "outputPath": "C:\\Users\\Haplo\\source\\repos\\Dalamud.TLPlugin\\dalamud-translator-plugin\\obj\\",
       "projectStyle": "PackageReference",
       "fallbackFolders": [
         "C:\\Program Files\\dotnet\\sdk\\NuGetFallbackFolder"

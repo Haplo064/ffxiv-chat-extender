@@ -24,10 +24,10 @@
   </ItemGroup>
   <ItemGroup>
     <Reference Include="Dalamud">
-      <HintPath>..\..\..\AppData\Roaming\XIVLauncher\addon\Hooks\Dalamud.dll</HintPath>
+      <HintPath>..\..\..\..\AppData\Roaming\XIVLauncher\addon\Hooks\Dalamud.dll</HintPath>
     </Reference>
     <Reference Include="GoogleTranslateFreeApi">
-      <HintPath>..\..\..\AppData\Roaming\XIVLauncher\plugins\Translator\GoogleTranslateFreeApi.dll</HintPath>
+      <HintPath>..\..\..\..\AppData\Roaming\XIVLauncher\plugins\Translator\GoogleTranslateFreeApi.dll</HintPath>
     </Reference>
     <Reference Include="IvanAkcheurov.NTextCat.Lib">
       <HintPath>..\..\..\AppData\Roaming\XIVLauncher\plugins\Translator\IvanAkcheurov.NTextCat.Lib.dll</HintPath>

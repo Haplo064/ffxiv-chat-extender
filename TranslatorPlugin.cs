@@ -32,7 +32,7 @@ namespace DalamudPlugin
             var messageString = message.Value;
             if (lang(messageString) == "jpn")
             {
-                var senderName = sender.ToString();
+                var senderName = SeString.Parse(sender.RawData).ToString();
                 Task.Run(() => tran(type, messageString, senderName));
             }
         }
