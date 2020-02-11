@@ -39,6 +39,10 @@
       "frameworks": {
         "net472": {
           "dependencies": {
+            "GoogleTranslateFreeApi": {
+              "target": "Package",
+              "version": "[1.1.1, )"
+            },
             "IvanAkcheurov.NTextCat.Lib": {
               "target": "Package",
               "version": "[0.2.1.1, )"

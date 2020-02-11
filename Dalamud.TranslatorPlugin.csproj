@@ -21,6 +21,7 @@
     <AutoGenerateBindingRedirects>false</AutoGenerateBindingRedirects>
   </PropertyGroup>
   <ItemGroup>
+    <PackageReference Include="GoogleTranslateFreeApi" Version="1.1.1" />
     <PackageReference Include="IvanAkcheurov.NTextCat.Lib" Version="0.2.1.1" />
     <PackageReference Include="Newtonsoft.Json" Version="12.0.3" />
     <PackageReference Include="Serilog" Version="2.9.0" />

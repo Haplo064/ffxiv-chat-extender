@@ -6,9 +6,11 @@ using Dalamud.Game.Chat;
 using Dalamud.Game.Chat.SeStringHandling;
 using Dalamud.Plugin;
 using IvanAkcheurov.NTextCat.Lib;
-using Serilog;
 using Yandex;
 using ImGuiNET;
+using GoogleTranslateFreeApi;
+using Newtonsoft.Json;
+using System.IO;
 
 namespace DalamudPlugin
 {
@@ -20,9 +22,15 @@ namespace DalamudPlugin
         private DalamudPluginInterface pluginInterface;
         private bool drawWindow = true;
         //Globals
-        bool injectChat = true;
-        // Google Translate
-        YandexTranslate.Translator Trans = new YandexTranslate.Translator();
+        public bool injectChat = true;
+        public int translator = 1;         //1=Google,2=Yandex
+        public string language = "jpn";
+
+
+        //Google Translate
+        private static readonly GoogleTranslator TransG = new GoogleTranslator();
+        // Yandex Translate
+        private YandexTranslate.Translator TransY = new YandexTranslate.Translator();
         // NCat
         public static RankedLanguageIdentifierFactory factory = new RankedLanguageIdentifierFactory();
         public static RankedLanguageIdentifier identifier = factory.Load(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData) + "\\XIVLauncher\\plugins\\Translator\\Core14.profile.xml");
@@ -33,8 +41,16 @@ namespace DalamudPlugin
             this.pluginInterface = pluginInterface;
             pluginInterface.Framework.Gui.Chat.OnChatMessage += Chat_OnChatMessage;
             pluginInterface.UiBuilder.OnBuildUi += ShowUI;
-            Trans.Make("https://translate.yandex.net/api/v1.5/tr.json/translate", "trnsl.1.1.20200209T032001Z.c602678c5616cc9a.7142796a81b55a5b7fde88e906a49b7da90f67d8");
+
+            Config config = JsonConvert.DeserializeObject<Config>(File.ReadAllText(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData) + "\\XIVLauncher\\plugins\\Translator\\config.json"));
+
+            TransY.Make("https://translate.yandex.net/api/v1.5/tr.json/translate", config.YandexKey);
             
+        }
+
+        public class Config
+        {
+            public string YandexKey { get; set; }
         }
 
         private void ShowUI()
@@ -47,6 +63,7 @@ namespace DalamudPlugin
                     ImGui.Text("Powered by Yandex.Translate");
                     ImGui.Text("http://translate.yandex.com");
                     ImGui.Text("===========================");
+                    ImGui.Text("(Feel free to close this!)");
                 }
                 ImGui.End();
             }
@@ -57,10 +74,26 @@ namespace DalamudPlugin
             String messageString = message.Value;
             String temp = Lang(messageString);
             
-            if (temp == "jpn")
+            if (temp == language)
             {
                 var senderName = SeString.Parse(sender.RawData).TextValue;
                 Task.Run(() => Tran(type, messageString, senderName));
+            }
+
+            if (messageString == "!trn t 1")
+            {
+                translator = 1;
+                var chat = new XivChatEntry
+                { Type = XivChatType.Notice, Name = "[TRN]", MessageBytes = Encoding.UTF8.GetBytes("Translator set to Google") };
+                pluginInterface.Framework.Gui.Chat.PrintChat(chat);
+            }
+
+            if (messageString == "!trn t 2")
+            {
+                translator = 2;
+                var chat = new XivChatEntry
+                { Type = XivChatType.Notice, Name = "[TRN]", MessageBytes = Encoding.UTF8.GetBytes("Translator set to Yandex") };
+                pluginInterface.Framework.Gui.Chat.PrintChat(chat);
             }
 
         }
@@ -91,10 +124,17 @@ namespace DalamudPlugin
 
         public string Translate(string apple)
         {
-            //Log.Information("Just before sending to yandex...");
-            var text = Trans.Translate(apple, "en");
-            //Log.Information("Response!" + text);
-            return text.Text[0];
+            if (translator == 1)
+            {
+                var text = TransG.TranslateLiteAsync(apple, Language.Auto, Language.English).GetAwaiter().GetResult();
+                return text.MergedTranslation;
+            }
+            else
+            {
+                var text = TransY.Translate(apple, "en");
+                return text.Text[0];
+            }
+
         }
 
         public static string Lang(string banana)
