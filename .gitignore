@@ -57,3 +57,5 @@ obj/Debug/Dalamud.TranslatorPlugin.csproj.FileListAbsolute.txt
 obj/Debug/Dalamud.TranslatorPlugin.csprojAssemblyReference.cache
 obj/Debug/Dalamud.TranslatorPlugin.dll
 obj/Debug/Dalamud.TranslatorPlugin.pdb
+.vs/Dalamud.TranslatorPlugin/v16/Server/sqlite3/storage.ide-shm
+.vs/Dalamud.TranslatorPlugin/v16/Server/sqlite3/storage.ide-shm

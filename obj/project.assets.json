@@ -2,7 +2,20 @@
   "version": 3,
   "targets": {
     ".NETFramework,Version=v4.7.2": {
-      "Newtonsoft.Json/11.0.2": {
+      "IvanAkcheurov.NTextCat.Lib/0.2.1.1": {
+        "type": "package",
+        "compile": {
+          "lib/net40/IvanAkcheurov.Commons.dll": {},
+          "lib/net40/IvanAkcheurov.NClassify.dll": {},
+          "lib/net40/IvanAkcheurov.NTextCat.Lib.dll": {}
+        },
+        "runtime": {
+          "lib/net40/IvanAkcheurov.Commons.dll": {},
+          "lib/net40/IvanAkcheurov.NClassify.dll": {},
+          "lib/net40/IvanAkcheurov.NTextCat.Lib.dll": {}
+        }
+      },
+      "Newtonsoft.Json/12.0.3": {
         "type": "package",
         "compile": {
           "lib/net45/Newtonsoft.Json.dll": {}
@@ -11,8 +24,13 @@
           "lib/net45/Newtonsoft.Json.dll": {}
         }
       },
-      "Serilog/2.6.0": {
+      "Serilog/2.9.0": {
         "type": "package",
+        "frameworkAssemblies": [
+          "Microsoft.CSharp",
+          "System",
+          "System.Core"
+        ],
         "compile": {
           "lib/net46/Serilog.dll": {}
         },
@@ -20,19 +38,19 @@
           "lib/net46/Serilog.dll": {}
         }
       },
-      "Serilog.Sinks.Async/1.1.0": {
+      "Serilog.Sinks.Async/1.4.0": {
         "type": "package",
         "dependencies": {
-          "Serilog": "2.1.0"
+          "Serilog": "2.8.0"
         },
         "compile": {
-          "lib/net45/Serilog.Sinks.Async.dll": {}
+          "lib/net461/Serilog.Sinks.Async.dll": {}
         },
         "runtime": {
-          "lib/net45/Serilog.Sinks.Async.dll": {}
+          "lib/net461/Serilog.Sinks.Async.dll": {}
         }
       },
-      "Serilog.Sinks.File/4.0.0": {
+      "Serilog.Sinks.File/4.1.0": {
         "type": "package",
         "dependencies": {
           "Serilog": "2.5.0"
@@ -52,10 +70,28 @@
     }
   },
   "libraries": {
-    "Newtonsoft.Json/11.0.2": {
-      "sha512": "IvJe1pj7JHEsP8B8J8DwlMEx8UInrs/x+9oVY+oCD13jpLu4JbJU2WCIsMRn5C4yW9+DgkaO8uiVE5VHKjpmdQ==",
+    "IvanAkcheurov.NTextCat.Lib/0.2.1.1": {
+      "sha512": "LOvUaSc4V4D/j3lxSEBjnWyfFS4le7Ez/2jzbsNSSeTl9WmZxVhFFgDYLWjA6qb9fJ1tUsy1bmeaRjU3GVumaw==",
       "type": "package",
-      "path": "newtonsoft.json/11.0.2",
+      "path": "ivanakcheurov.ntextcat.lib/0.2.1.1",
+      "files": [
+        ".nupkg.metadata",
+        ".signature.p7s",
+        "Core14.profile.xml",
+        "ivanakcheurov.ntextcat.lib.0.2.1.1.nupkg.sha512",
+        "ivanakcheurov.ntextcat.lib.nuspec",
+        "lib/net40/IvanAkcheurov.Commons.XML",
+        "lib/net40/IvanAkcheurov.Commons.dll",
+        "lib/net40/IvanAkcheurov.NClassify.XML",
+        "lib/net40/IvanAkcheurov.NClassify.dll",
+        "lib/net40/IvanAkcheurov.NTextCat.Lib.XML",
+        "lib/net40/IvanAkcheurov.NTextCat.Lib.dll"
+      ]
+    },
+    "Newtonsoft.Json/12.0.3": {
+      "sha512": "6mgjfnRB4jKMlzHSl+VD+oUc1IebOZabkbyWj2RiTgWwYPPuaK1H97G1sHqGwPlS5npiF5Q0OrxN1wni2n5QWg==",
+      "type": "package",
+      "path": "newtonsoft.json/12.0.3",
       "files": [
         ".nupkg.metadata",
         ".signature.p7s",
@@ -78,14 +114,15 @@
         "lib/portable-net40+sl5+win8+wp8+wpa81/Newtonsoft.Json.xml",
         "lib/portable-net45+win8+wp8+wpa81/Newtonsoft.Json.dll",
         "lib/portable-net45+win8+wp8+wpa81/Newtonsoft.Json.xml",
-        "newtonsoft.json.11.0.2.nupkg.sha512",
-        "newtonsoft.json.nuspec"
+        "newtonsoft.json.12.0.3.nupkg.sha512",
+        "newtonsoft.json.nuspec",
+        "packageIcon.png"
       ]
     },
-    "Serilog/2.6.0": {
-      "sha512": "hxHgHkza8ZowrvQ+jTEF2ypDWGP8NbNtxPQIx7ogTAM9fisDFo2+6kOaxCkleZLO8hiyq0kW5tDLkgm/dbj9uA==",
+    "Serilog/2.9.0": {
+      "sha512": "QzcrD33A3+CsVvwi1I5CSei67ikQnkGrw7SscgL+vZTghaC2aNYg8fiUcedXHzKJFNjgje9rBjzwYGQTKEaXaA==",
       "type": "package",
-      "path": "serilog/2.6.0",
+      "path": "serilog/2.9.0",
       "files": [
         ".nupkg.metadata",
         ".signature.p7s",
@@ -97,47 +134,59 @@
         "lib/netstandard1.0/Serilog.xml",
         "lib/netstandard1.3/Serilog.dll",
         "lib/netstandard1.3/Serilog.xml",
-        "serilog.2.6.0.nupkg.sha512",
+        "lib/netstandard2.0/Serilog.dll",
+        "lib/netstandard2.0/Serilog.xml",
+        "serilog.2.9.0.nupkg.sha512",
         "serilog.nuspec"
       ]
     },
-    "Serilog.Sinks.Async/1.1.0": {
-      "sha512": "xll0Kanz2BkCxuv+F3p1WXr47jdsVM0GU1n1LZvK+18QiRZ/WGFNxSNw9EMKFV5ED5gr7MUpAe6PCMNL1HGUMA==",
+    "Serilog.Sinks.Async/1.4.0": {
+      "sha512": "OZDmB/qs/uXO9oLyLIY4h85b0sCoJnFmPqI3P79jLumViEKq2su7h70Vqs1cdqEftl2oWuBgkkS54fOK4PjP0w==",
       "type": "package",
-      "path": "serilog.sinks.async/1.1.0",
+      "path": "serilog.sinks.async/1.4.0",
       "files": [
         ".nupkg.metadata",
         ".signature.p7s",
         "lib/net45/Serilog.Sinks.Async.dll",
         "lib/net45/Serilog.Sinks.Async.xml",
+        "lib/net461/Serilog.Sinks.Async.dll",
+        "lib/net461/Serilog.Sinks.Async.xml",
         "lib/netstandard1.1/Serilog.Sinks.Async.dll",
         "lib/netstandard1.1/Serilog.Sinks.Async.xml",
-        "serilog.sinks.async.1.1.0.nupkg.sha512",
+        "lib/netstandard2.0/Serilog.Sinks.Async.dll",
+        "lib/netstandard2.0/Serilog.Sinks.Async.xml",
+        "serilog.sinks.async.1.4.0.nupkg.sha512",
         "serilog.sinks.async.nuspec"
       ]
     },
-    "Serilog.Sinks.File/4.0.0": {
-      "sha512": "vBj43RkAbeP1dzoPFR2+LfV5GevDRPDq6265JJBv223lMvT9rfdwe/S/I9ow7aZSLYKfw4qPDw6NW8YwjbDbvg==",
+    "Serilog.Sinks.File/4.1.0": {
+      "sha512": "U0b34w+ZikbqWEZ3ui7BdzxY/19zwrdhLtI3o6tfmLdD3oXxg7n2TZJjwCCTlKPgRuYic9CBWfrZevbb70mTaw==",
       "type": "package",
-      "path": "serilog.sinks.file/4.0.0",
+      "path": "serilog.sinks.file/4.1.0",
       "files": [
         ".nupkg.metadata",
         ".signature.p7s",
         "lib/net45/Serilog.Sinks.File.dll",
+        "lib/net45/Serilog.Sinks.File.pdb",
         "lib/net45/Serilog.Sinks.File.xml",
         "lib/netstandard1.3/Serilog.Sinks.File.dll",
+        "lib/netstandard1.3/Serilog.Sinks.File.pdb",
         "lib/netstandard1.3/Serilog.Sinks.File.xml",
-        "serilog.sinks.file.4.0.0.nupkg.sha512",
+        "lib/netstandard2.0/Serilog.Sinks.File.dll",
+        "lib/netstandard2.0/Serilog.Sinks.File.pdb",
+        "lib/netstandard2.0/Serilog.Sinks.File.xml",
+        "serilog.sinks.file.4.1.0.nupkg.sha512",
         "serilog.sinks.file.nuspec"
       ]
     }
   },
   "projectFileDependencyGroups": {
     ".NETFramework,Version=v4.7.2": [
-      "Newtonsoft.Json >= 11.0.2",
-      "Serilog >= 2.6.0",
-      "Serilog.Sinks.Async >= 1.1.0",
-      "Serilog.Sinks.File >= 4.0.0"
+      "IvanAkcheurov.NTextCat.Lib >= 0.2.1.1",
+      "Newtonsoft.Json >= 12.0.3",
+      "Serilog >= 2.9.0",
+      "Serilog.Sinks.Async >= 1.4.0",
+      "Serilog.Sinks.File >= 4.1.0"
     ]
   },
   "packageFolders": {
@@ -179,21 +228,25 @@
     "frameworks": {
       "net472": {
         "dependencies": {
+          "IvanAkcheurov.NTextCat.Lib": {
+            "target": "Package",
+            "version": "[0.2.1.1, )"
+          },
           "Newtonsoft.Json": {
             "target": "Package",
-            "version": "[11.0.2, )"
+            "version": "[12.0.3, )"
           },
           "Serilog": {
             "target": "Package",
-            "version": "[2.6.0, )"
+            "version": "[2.9.0, )"
           },
           "Serilog.Sinks.Async": {
             "target": "Package",
-            "version": "[1.1.0, )"
+            "version": "[1.4.0, )"
           },
           "Serilog.Sinks.File": {
             "target": "Package",
-            "version": "[4.0.0, )"
+            "version": "[4.1.0, )"
           }
         },
         "runtimeIdentifierGraphPath": "C:\\Program Files\\dotnet\\sdk\\3.1.100\\RuntimeIdentifierGraph.json"
