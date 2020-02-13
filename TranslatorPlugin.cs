@@ -5,6 +5,7 @@ using System.Threading.Tasks;
 using Dalamud.Game.Chat;
 using Dalamud.Game.Chat.SeStringHandling;
 using Dalamud.Plugin;
+using Dalamud.Game.Command;
 using IvanAkcheurov.NTextCat.Lib;
 using Yandex;
 using ImGuiNET;
@@ -20,12 +21,13 @@ namespace DalamudPlugin
 
         public string Name => "Translator Plugin";
         private DalamudPluginInterface pluginInterface;
-        private bool drawWindow = true;
+        private bool loadWindow = true;
+        private bool chatWindow = false;
+        private string chatText = "";
         //Globals
         public bool injectChat = true;
         public int translator = 1;         //1=Google,2=Yandex
         public string language = "jpn";
-
 
         //Google Translate
         private static readonly GoogleTranslator TransG = new GoogleTranslator();
@@ -40,12 +42,57 @@ namespace DalamudPlugin
             // Initializing plugin, hooking into chat.
             this.pluginInterface = pluginInterface;
             pluginInterface.Framework.Gui.Chat.OnChatMessage += Chat_OnChatMessage;
-            pluginInterface.UiBuilder.OnBuildUi += ShowUI;
+            pluginInterface.UiBuilder.OnBuildUi += ChatUI;
 
             Config config = JsonConvert.DeserializeObject<Config>(File.ReadAllText(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData) + "\\XIVLauncher\\plugins\\Translator\\config.json"));
 
             TransY.Make("https://translate.yandex.net/api/v1.5/tr.json/translate", config.YandexKey);
-            
+
+            // Set up command handlers
+            pluginInterface.CommandManager.AddHandler("/trn", new CommandInfo(OnTranslateCommand)
+            {
+                HelpMessage = "Configure Translator Engine of Translator. Usage: /trn t <#> (1=Google, 2=Yandex)"
+            });
+
+        }
+
+        private void OnTranslateCommand(string command, string arguments)
+        {
+            if (string.IsNullOrEmpty(arguments))
+            {
+                this.pluginInterface.Framework.Gui.Chat.PrintError("No setting specified.");
+                return;
+            }
+
+            else
+            {
+                String[] bits = arguments.Split(' ');
+                if (bits[0] == "e" | bits[0] == "engine")
+                {
+                    if (bits[1] == "1" | bits[1] == "google") {translator = 1; PrintChat(XivChatType.Notice, "[TRN]", "Translator set to Google"); return; }
+                    else if (bits[1] == "2"| bits[1] == "yandex") {translator = 2; PrintChat(XivChatType.Notice, "[TRN]", "Translator set to Yandex"); return; }
+                    else {this.pluginInterface.Framework.Gui.Chat.PrintError("No valid setting supplied. 1=Google, 2=Yandex"); return; }
+                }
+
+                else if (bits[0] == "i" | bits[0] == "inject")
+                {
+                    if (bits[1] == "1" | bits[1] == "true" | bits[1] == "on") { injectChat = true; PrintChat(XivChatType.Notice, "[TRN]", "Chat injection on"); return; }
+                    else if (bits[1] == "0" | bits[1] == "false" | bits[1] == "off") { injectChat = false; PrintChat(XivChatType.Notice, "[TRN]", "Chat injection off"); return; }
+                    else { this.pluginInterface.Framework.Gui.Chat.PrintError("No valid setting supplied. Try: 1/0, on/off, true/false"); return; }
+                }
+
+                else if  (bits[0] == "w" | bits[0] == "window")
+                {this.chatWindow = true; PrintChat(XivChatType.Notice, "[TRN]", "Opened Chat Window"); return; }
+
+                else if (bits[0] == "h" | bits[0] == "help")
+                {PrintChat(XivChatType.Notice, "[TRN]", "Avaliable options:\n[e/engine] <1/google 2/yandex>\n[i/inject] <1/true/on 0/false/off>\n[w/window]"); return; }
+                
+                else
+                { this.pluginInterface.Framework.Gui.Chat.PrintError("No valid command supplied. Try 'h/help'"); return; }
+            }
+
+
+
         }
 
         public class Config
@@ -53,23 +100,32 @@ namespace DalamudPlugin
             public string YandexKey { get; set; }
         }
 
-        private void ShowUI()
+        private void ChatUI()
         {
-            // use ImGui.NET things here
-            if (drawWindow)
+            if (loadWindow)
             {
-                if (ImGui.Begin("Translator", ref drawWindow))
+                if (ImGui.Begin("Translator", ref loadWindow))
                 {
-                    ImGui.Text("Powered by Yandex.Translate");
-                    ImGui.Text("http://translate.yandex.com");
-                    ImGui.Text("===========================");
-                    ImGui.Text("(Feel free to close this!)");
+                    ImGui.Text("-=Translator Plugin Loaded=-");
+                    ImGui.Text("============================");
+                    ImGui.Text("Try '/trn h' for help!");
                 }
                 ImGui.End();
             }
+            if (chatWindow)
+            {
+                if (ImGui.Begin("Chat Log", ref chatWindow))
+                {
+                    ImGui.TextUnformatted(this.chatText);
+                }
+                ImGui.End();
+            }          
         }
 
-            private void Chat_OnChatMessage(XivChatType type, uint senderId, ref Dalamud.Game.Internal.Libc.StdString sender, ref Dalamud.Game.Internal.Libc.StdString message, ref bool isHandled)
+
+
+
+        private void Chat_OnChatMessage(XivChatType type, uint senderId, ref Dalamud.Game.Internal.Libc.StdString sender, ref Dalamud.Game.Internal.Libc.StdString message, ref bool isHandled)
         {
             String messageString = message.Value;
             String temp = Lang(messageString);
@@ -80,22 +136,13 @@ namespace DalamudPlugin
                 Task.Run(() => Tran(type, messageString, senderName));
             }
 
-            if (messageString == "!trn t 1")
-            {
-                translator = 1;
-                var chat = new XivChatEntry
-                { Type = XivChatType.Notice, Name = "[TRN]", MessageBytes = Encoding.UTF8.GetBytes("Translator set to Google") };
-                pluginInterface.Framework.Gui.Chat.PrintChat(chat);
-            }
+        }
 
-            if (messageString == "!trn t 2")
-            {
-                translator = 2;
-                var chat = new XivChatEntry
-                { Type = XivChatType.Notice, Name = "[TRN]", MessageBytes = Encoding.UTF8.GetBytes("Translator set to Yandex") };
-                pluginInterface.Framework.Gui.Chat.PrintChat(chat);
-            }
-
+        public void PrintChat(XivChatType type, string senderName, string messageString)
+        {
+            var chat = new XivChatEntry
+            { Type = type, Name = senderName, MessageBytes = Encoding.UTF8.GetBytes(messageString) };
+            pluginInterface.Framework.Gui.Chat.PrintChat(chat);
         }
 
         public void Tran(XivChatType type, string messageString, string senderName)
@@ -105,20 +152,9 @@ namespace DalamudPlugin
 
             if (injectChat == true)
             {
-                var chat = new XivChatEntry
-                { Type = type, Name = "[TRN] " + senderName, MessageBytes = Encoding.UTF8.GetBytes(output) };
-                pluginInterface.Framework.Gui.Chat.PrintChat(chat);
+                PrintChat(type, "[TRN] " + senderName, output);
             }
-
-            //TODO
-            /*if (drawWindow)
-            {
-                if (ImGui.Begin("Translator", ref drawWindow))
-                {
-                    ImGui.Text(type.ToString() + " : " + senderName + " : " + output);
-                }
-                ImGui.End();
-            }*/
+            this.chatText += "\n"+senderName+": "+output;
         }
 
 
@@ -153,6 +189,7 @@ namespace DalamudPlugin
         public void Dispose()
         {
             pluginInterface.Framework.Gui.Chat.OnChatMessage -= Chat_OnChatMessage;
+            pluginInterface.CommandManager.RemoveHandler("/trn");
         }
 
 
