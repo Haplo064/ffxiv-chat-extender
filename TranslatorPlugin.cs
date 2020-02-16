@@ -125,14 +125,14 @@ namespace DalamudPlugin
 
 
 
-        private void Chat_OnChatMessage(XivChatType type, uint senderId, ref Dalamud.Game.Internal.Libc.StdString sender, ref Dalamud.Game.Internal.Libc.StdString message, ref bool isHandled)
+        private void Chat_OnChatMessage(XivChatType type, uint senderId, ref SeString sender, ref SeString message, ref bool isHandled)
         {
-            String messageString = message.Value;
+            String messageString = message.TextValue;
             String temp = Lang(messageString);
             
             if (temp == language)
             {
-                var senderName = SeString.Parse(sender.RawData).TextValue;
+                var senderName = sender.TextValue;
                 Task.Run(() => Tran(type, messageString, senderName));
             }
 
