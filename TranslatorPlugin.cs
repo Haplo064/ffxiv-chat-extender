@@ -13,6 +13,8 @@ using ImGuiNET;
 using GoogleTranslateFreeApi;
 using Newtonsoft.Json;
 using System.IO;
+using System.Runtime.CompilerServices;
+using Dalamud.Configuration;
 using Num = System.Numerics;
 
 
@@ -42,25 +44,38 @@ namespace DalamudPlugin
         private YandexTranslate.Translator TransY = new YandexTranslate.Translator();
         // NCat
         public static RankedLanguageIdentifierFactory factory = new RankedLanguageIdentifierFactory();
-        public static RankedLanguageIdentifier identifier = factory.Load(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData) + "\\XIVLauncher\\installedPlugins\\Dalamud.TranslatorPlugin\\Core14.profile.xml");
+        public static RankedLanguageIdentifier identifier = factory.Load(Path.Combine(AssemblyDirectory, "NCat", "Core14.profile.xml"));
+
+        public TranslatePluginConfiguration Configuration;
+
+        public static string AssemblyDirectory
+        {
+            get
+            {
+                var codeBase = typeof(TranslatorPlugin).Assembly.CodeBase;
+                var uri = new UriBuilder(codeBase);
+                var path = Uri.UnescapeDataString(uri.Path);
+                return Path.GetDirectoryName(path);
+            }
+        }
 
         public void Initialize(DalamudPluginInterface pluginInterface)
         {
             // Initializing plugin, hooking into chat.
             this.pluginInterface = pluginInterface;
-            pluginInterface.Framework.Gui.Chat.OnChatMessage += Chat_OnChatMessage;
-            pluginInterface.UiBuilder.OnBuildUi += ChatUI;
+            this.pluginInterface.Framework.Gui.Chat.OnChatMessage += Chat_OnChatMessage;
+            this.pluginInterface.UiBuilder.OnBuildUi += ChatUI;
 
-            Config config = JsonConvert.DeserializeObject<Config>(File.ReadAllText(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData) + "\\XIVLauncher\\InstalledPlugins\\Dalamud.TranslatorPlugin\\config.json"));
+            Configuration = pluginInterface.GetPluginConfig() as TranslatePluginConfiguration ?? new TranslatePluginConfiguration();
 
             items.Add(new DynTab("First", "", true));
             items.Add(new DynTab("Second", "", true));
             items.Add(new DynTab("Third", "", true));
 
-            TransY.Make("https://translate.yandex.net/api/v1.5/tr.json/translate", config.YandexKey);
+            TransY.Make("https://translate.yandex.net/api/v1.5/tr.json/translate", Configuration.YandexKey);
 
             // Set up command handlers
-            pluginInterface.CommandManager.AddHandler("/trn", new CommandInfo(OnTranslateCommand)
+            this.pluginInterface.CommandManager.AddHandler("/trn", new CommandInfo(OnTranslateCommand)
             {
                 HelpMessage = "Configure Translator Engine of Translator. Usage: /trn t <#> (1=Google, 2=Yandex)"
             });
@@ -106,8 +121,9 @@ namespace DalamudPlugin
 
         }
 
-        public class Config
+        public class TranslatePluginConfiguration : IPluginConfiguration
         {
+            public int Version { get; set; } = 0;
             public string YandexKey { get; set; }
         }
 
