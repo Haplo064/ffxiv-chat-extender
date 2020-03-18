@@ -30,19 +30,27 @@
   </ItemGroup>
   <ItemGroup>
     <Reference Include="Dalamud">
-      <HintPath>..\..\..\..\AppData\Roaming\XIVLauncher\addon\Hooks\Dalamud.dll</HintPath>
+      <HintPath>$(appdata)\XIVLauncher\addon\Hooks\Dalamud.dll</HintPath>
     </Reference>
     <Reference Include="ImGui.NET">
-      <HintPath>..\..\..\..\AppData\Roaming\XIVLauncher\addon\Hooks\ImGui.NET.dll</HintPath>
+      <HintPath>$(appdata)\XIVLauncher\addon\Hooks\ImGui.NET.dll</HintPath>
     </Reference>
     <Reference Include="ImGuiScene">
-      <HintPath>..\..\..\..\AppData\Roaming\XIVLauncher\addon\Hooks\ImGuiScene.dll</HintPath>
+      <HintPath>$(appdata)\XIVLauncher\addon\Hooks\ImGuiScene.dll</HintPath>
     </Reference>
-    <Reference Include="System.Net.Http">
-      <HintPath>..\..\..\AppData\Roaming\XIVLauncher\addon\Hooks\System.Net.Http.dll</HintPath>
+    <Reference Include="SDL2-CS">
+      <HintPath>$(appdata)\XIVLauncher\addon\Hooks\SDL2-CS.dll</HintPath>
     </Reference>
     <Reference Include="Yandex">
-      <HintPath>..\..\Yandex\bin\Debug\netstandard2.0\Yandex.dll</HintPath>
+      <HintPath>Yandex.dll</HintPath>
     </Reference>
+  </ItemGroup>
+  <ItemGroup>
+    <None Update="Dalamud.TranslatorPlugin.json">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Update="NCat\Core14.profile.xml">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
   </ItemGroup>
 </Project>
