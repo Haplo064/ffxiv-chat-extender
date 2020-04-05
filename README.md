@@ -1,8 +1,13 @@
-# dalamud-translator-plugin
-Translator plugin for FFXIV
+# FFXIV Chat Extender
+Chat Extender plugin for FFXIV
 
-Translates chat text from one language to another, placing the translation immediately into your chatbox.
+# Features
+* Translates chat text from one language to another, placing the translation immediately into your chatbox.
 ![Translation Exmaple](https://github.com/Haplo064/dalamud-translator-plugin/blob/master/img/rm_12.png)
+
+* Adds as many tabs as you want to the game!
+* Configurable channels and such
+* More coming soon as I get motivation to work on it!
 
 # Requirements
 * XIVLauncher: https://github.com/goaaats/FFXIVQuickLauncher
