@@ -10,11 +10,11 @@
     <AppendTargetFrameworkToOutputPath>false</AppendTargetFrameworkToOutputPath>
     <DebugSymbols>true</DebugSymbols>
     <DebugType>Portable</DebugType>
-    <Authors>goat</Authors>
-    <Company>goatsoft</Company>
-    <Description>A Dalamud plugin that Translates chat text</Description>
-    <Product>Dalamud Translator Plugin</Product>
-    <PackageId>Dalamud.TranslatorPlugin</PackageId>
+    <Authors>Haplo</Authors>
+    <Company>Area52</Company>
+    <Description>A Dalamud plugin that extends FFXIV chat funcitonality</Description>
+    <Product>Chat Extender Plugin</Product>
+    <PackageId>ChatExtender.Plugin</PackageId>
   </PropertyGroup>
   <PropertyGroup>
     <GeneratePackageOnBuild>false</GeneratePackageOnBuild>
@@ -46,7 +46,7 @@
     </Reference>
   </ItemGroup>
   <ItemGroup>
-    <None Update="Dalamud.TranslatorPlugin.json">
+    <None Update="ChatExtender.Plugin.json">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
     <None Update="NCat\Core14.profile.xml">

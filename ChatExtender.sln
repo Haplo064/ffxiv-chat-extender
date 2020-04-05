@@ -1,0 +1,25 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 16
+VisualStudioVersion = 16.0.29613.14
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "ChatExtender", "ChatExtender.csproj", "{01A110B5-DA6D-46F5-B107-71C44DC5CC49}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{01A110B5-DA6D-46F5-B107-71C44DC5CC49}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{01A110B5-DA6D-46F5-B107-71C44DC5CC49}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{01A110B5-DA6D-46F5-B107-71C44DC5CC49}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{01A110B5-DA6D-46F5-B107-71C44DC5CC49}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {8EC4C3EB-A3B3-48AD-B92C-B267ABA79858}
+	EndGlobalSection
+EndGlobal
