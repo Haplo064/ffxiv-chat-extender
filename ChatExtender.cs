@@ -18,16 +18,19 @@ using Dalamud.Configuration;
 using Num = System.Numerics;
 
 //TODO
-//TODOs in code!!!
-//Add colour config
-//Add alpha config
+//Add colour config - Split into 3?
+
+//Add select+copy?
+//Add locking in place
+//Add clickthrough
+//Add write to file
+
 //Add spacing config
 //Font? - Likely change to gothic
-//Auto Scroll down!
-//Rename Plugin
 //Fix up missing chat text
 //Add in handling for quick-translate stuff
-//Get Goat to accept it as a plugin to load via config
+//Add in text finding
+//Add in text higlighting?
 //Add in Yandex Key via config
 //Add in support for more than japanese?
 //Add in config for language selections?
@@ -47,10 +50,12 @@ namespace DalamudPlugin
         public bool injectChat = false;
         public int translator = 1;         //1=Google,2=Yandex
         public string language = "jpn";
+        public string yandex = "";
         public List<TabBase> items = new List<TabBase>();
         public List<TabBase> itemsTemp = new List<TabBase>();
         public uint bufSize = 24;
         public string tempTitle = "Title";
+        public float alpha = 0.2f;
 
         //Google Translate
         private static readonly GoogleTranslator TransG = new GoogleTranslator();
@@ -78,19 +83,19 @@ namespace DalamudPlugin
             // Initializing plugin, hooking into chat.
             this.pluginInterface = pluginInterface;
             Configuration = pluginInterface.GetPluginConfig() as ChatExtenderPluginConfiguration ?? new ChatExtenderPluginConfiguration();
-          
+
             if (Configuration.Items == null)
-                {
-                    //Serilog.Log.Information("Null DynTab List");
-                    items.Add(new DynTab("XXX", new List<string>(), true));
-                }
+            {
+                //Serilog.Log.Information("Null DynTab List");
+                items.Add(new DynTab("XXX", new List<ChatText>(), true));
+            }
             else
             {
                 //Serilog.Log.Information("Not Null DynTab List");
                 if (Configuration.Items.Count == 0)
                 {
                     //Serilog.Log.Information("Empty DynTab List");
-                    items.Add(new DynTab("YYY", new List<string>(), true));
+                    items.Add(new DynTab("YYY", new List<ChatText>(), true));
                 }
                 else
                 {
@@ -108,7 +113,7 @@ namespace DalamudPlugin
                 }
             }
 
-            if(Configuration.Inject==true)
+            if (Configuration.Inject == true)
             {
                 injectChat = true;
             }
@@ -118,9 +123,19 @@ namespace DalamudPlugin
                 translator = 2;
             }
 
+            if (Configuration.YandexKey != null)
+            {
+                yandex = Configuration.YandexKey.ToString();
+            }
+
             if (Configuration.Extender == true)
             {
-                chatWindow=true;
+                chatWindow = true;
+            }
+
+            if (Configuration.Alpha != 0.2f)
+            {
+                alpha = Configuration.Alpha;
             }
 
             TransY.Make("https://translate.yandex.net/api/v1.5/tr.json/translate", Configuration.YandexKey);
@@ -133,7 +148,14 @@ namespace DalamudPlugin
 
             this.pluginInterface.Framework.Gui.Chat.OnChatMessage += Chat_OnChatMessage;
             this.pluginInterface.UiBuilder.OnBuildUi += ChatUI;
+            this.pluginInterface.UiBuilder.OnOpenConfigUi += Chat_ConfigWindow;
         }
+
+        private void Chat_ConfigWindow(object Sender, EventArgs args)
+        {
+            configWindow = true;
+        }
+
 
         private void OnTranslateCommand(string command, string arguments)
         {
@@ -210,6 +232,7 @@ namespace DalamudPlugin
             public bool Inject { get; set; }
             public int Translator { get; set; }
             public bool Extender { get; set; }
+            public float Alpha { get; set; }
         }
 
         private void ChatUI()
@@ -217,7 +240,7 @@ namespace DalamudPlugin
             if (chatWindow)
             {
                 ImGui.SetNextWindowSize(new Num.Vector2(200, 100), ImGuiCond.FirstUseEver);
-                ImGui.SetNextWindowBgAlpha(0.2f);
+                ImGui.SetNextWindowBgAlpha(alpha);
                 ImGui.Begin("Another Window", ref chatWindow, ImGuiWindowFlags.NoTitleBar);
                 ImGuiTabBarFlags tab_bar_flags = ImGuiTabBarFlags.None;
                 if (ImGui.BeginTabBar("Tabs", tab_bar_flags))
@@ -230,10 +253,19 @@ namespace DalamudPlugin
                             {
                                 float footer = (ImGui.GetStyle().ItemSpacing.Y) / 2 + ImGui.GetFrameHeightWithSpacing();
                                 ImGui.BeginChild("scrolling", new Num.Vector2(0, -footer), false);
-                                foreach (var line in tab.Text)
+                                foreach (ChatText line in tab.Chat)
                                 {
-                                    ImGui.TextWrapped(line);
+                                    string tmp = "";
+                                    if (tab.Config[0]) { tmp += line.Time + " "; }
+                                    if (tab.Config[1]) { tmp += line.Channel + " "; }
+                                    if (line.Sender.Length > 0) { tmp += line.Sender + ":"; }
+                                    tmp += line.Text;
+                                    ImGui.Selectable(tmp);
+                                }
+                                if (tab.Scroll == true)
+                                {
                                     ImGui.SetScrollHereY();
+                                    tab.Scroll = false;
                                 }
                                 ImGui.EndChild();
                                 ImGui.EndTabItem();
@@ -248,26 +280,15 @@ namespace DalamudPlugin
             if (configWindow)
             {
 
-                ImGui.SetNextWindowSize(new Num.Vector2(200, 100), ImGuiCond.FirstUseEver);
-                ImGui.SetNextWindowBgAlpha(0.2f);
+                ImGui.SetNextWindowSize(new Num.Vector2(300, 500), ImGuiCond.FirstUseEver);
                 ImGui.Begin("Chat Config", ref configWindow);
 
                 float footer1 = (ImGui.GetStyle().ItemSpacing.Y) / 2 + ImGui.GetFrameHeightWithSpacing();
                 ImGui.BeginChild("scrolling", new Num.Vector2(0, -footer1), false);
                 ImGui.Text("Config");
                 ImGui.Checkbox("Inject Translate into chat", ref injectChat);
-                if (ImGui.Button("Chat Extender"))
-                {
-                    if (this.chatWindow)
-                    {
-                        this.chatWindow = false;
-                    }
-                    else
-                    {
-                        this.chatWindow = true;
-                    }
-                    return;
-                }
+                ImGui.Checkbox("Display Chat Extender", ref chatWindow);
+                ImGui.SliderFloat("Alpha", ref alpha, 0.1f, 0.999f);
 
                 foreach (var tab in items)
                 {
@@ -295,6 +316,7 @@ namespace DalamudPlugin
                             ImGui.Checkbox("Channel", ref tab.Config[1]);
                             ImGui.SameLine();
                             ImGui.Checkbox("Translate", ref tab.Config[2]);
+                            ImGui.Checkbox("AutoScroll", ref tab.AutoScroll);
                             if (ImGui.TreeNode("Channels"))
                             {
                                 ImGui.Checkbox("None/Not Captured", ref tab.Logs[0]);
@@ -337,7 +359,8 @@ namespace DalamudPlugin
                             }
                             if (ImGui.Button("Delete Tab"))
                             {
-                                tab.Enabled = false;
+                                if (EnabledTabs(items) > 1)
+                                { tab.Enabled = false; }
                             }
                             ImGui.EndChild();
                             ImGui.TreePop();
@@ -354,29 +377,40 @@ namespace DalamudPlugin
                     while (CheckDupe(items, tempTitle))
                     { tempTitle += "."; }
 
-                    items.Add(new DynTab(tempTitle, new List<string>(), true));
+                    items.Add(new DynTab(tempTitle, new List<ChatText>(), true));
                     tempTitle = "Title";
                 }
                 ImGui.SameLine();
 
                 //TODO: Make this not clear the fucking log by using the same reference
-                if (ImGui.Button("Save Config"))
+                if (ImGui.Button("Save and Close Config"))
                 {
                     Configuration.Items = items.ToList();
                     foreach (var strip in Configuration.Items)
                     {
-                        strip.Text = new List<string>();
+                        strip.Chat = new List<ChatText>();
                     }
                     Configuration.Inject = injectChat;
                     Configuration.Extender = chatWindow;
+                    Configuration.Alpha = alpha;
                     this.pluginInterface.SavePluginConfig(Configuration);
+                    configWindow = false;
                 }
                 ImGui.EndChild();
                 ImGui.EndTabItem();
             }
         }
 
+        public int EnabledTabs(List<TabBase> countMe)
+        {
+            int count = 0;
 
+            foreach (var tab in countMe)
+            {
+                if (tab.Enabled) { count++; }
+            }
+            return count;
+        }
 
         public int ConvertForArray(string type)
         {
@@ -464,10 +498,12 @@ namespace DalamudPlugin
 
         private void Chat_OnChatMessage(XivChatType type, uint senderId, ref SeString sender, ref SeString message, ref bool isHandled)
         {
-            String messageString = message.TextValue;
-            String temp = Lang(messageString);
             var senderName = sender.TextValue;
-            if (temp == language)
+            List<Payload> payloads = message.Payloads;
+            String messageString = message.TextValue;
+            String predictedLanguage = Lang(messageString);
+
+            if (predictedLanguage == language)
             {
                 Task.Run(() => Tran(type, messageString, senderName));
             }
@@ -479,14 +515,36 @@ namespace DalamudPlugin
                 
                 if (tab.Logs[ConvertForArray(type.ToString())])
                 {
-                    string tmp = "";
-                    
-                    if (tab.Config[0]) { tmp += GetTime() + " "; }
-                    if (tab.Config[1]) { tmp += GetChannelName(type.ToString())+" "; }
-                    if (senderName.Length > 0) { tmp += senderName + ": "; }
-                    tmp += messageString;
+                    ChatText tmp = new ChatText();
 
-                    tab.Text.Add(tmp);
+                    tmp.Time = GetTime();
+                    tmp.Channel = GetChannelName(type.ToString());
+                    tmp.Sender = senderName;
+                    tmp.Text = messageString;
+
+                    foreach (var payload in payloads)
+                    {
+                        if(payload.Type == PayloadType.MapLink)
+                        {
+                            tmp.MapPayloads.Add(payload);
+                        }
+                    }
+
+                    tab.Chat.Add(tmp);
+                    foreach(Dalamud.Game.Chat.SeStringHandling.Payloads.MapLinkPayload MapLinks in tmp.MapPayloads)
+                    {
+                        ChatText map = new ChatText();
+                        map.Time = "";
+                        map.Channel = "";
+                        map.Sender = "[M]";
+                        map.Text = MapLinks.XCoord.ToString();
+
+                        tab.Chat.Add(map);
+                    }
+                    if (tab.AutoScroll == true)
+                    {
+                        tab.Scroll = true;
+                    }
                 }
                 
             }
@@ -524,14 +582,14 @@ namespace DalamudPlugin
 
                 if (tab.Logs[ConvertForArray(type.ToString())] && tab.Config[2])
                 {
-                    string tmp = "";
+                    ChatText tmp = new ChatText();
 
-                    if (tab.Config[0]) { tmp += GetTime() + " "; }
-                    if (tab.Config[1]) { tmp += GetChannelName(type.ToString()) + " "; }
-                    if (senderName.Length > 0) { tmp += senderName + ": "; }
-                    tmp += "<<" + output + ">>";
+                    tmp.Time = GetTime();
+                    tmp.Channel= GetChannelName(type.ToString());
+                    tmp.Sender = senderName;
+                    tmp.Text = "<<" + output + ">>";
 
-                    tab.Text.Add(tmp);
+                    tab.Chat.Add(tmp);
                 }
 
             }
@@ -571,12 +629,14 @@ namespace DalamudPlugin
         {
             pluginInterface.Framework.Gui.Chat.OnChatMessage -= Chat_OnChatMessage;
             pluginInterface.CommandManager.RemoveHandler("/cht");
+            this.pluginInterface.UiBuilder.OnBuildUi -= ChatUI;
+            pluginInterface.UiBuilder.OnOpenConfigUi -= Chat_ConfigWindow;
         }
 
         public class TabBase
         {
             public string Title;
-            public List<string> Text;
+            public List<ChatText> Chat;
             public bool Enabled;
 
             public bool[] Logs = {
@@ -593,6 +653,8 @@ namespace DalamudPlugin
             // 1 = Channel
             // 2 = Translate
             public bool[] Config = { false, false, true };
+            public bool AutoScroll = true;
+            public bool Scroll = false;
         }
 
         bool CheckDupe(List<TabBase> items, string title)
@@ -604,18 +666,26 @@ namespace DalamudPlugin
             return false;
         }
 
+        public class ChatText
+        {
+            public string Time;
+            public string Channel;
+            public string Sender;
+            public string Text;
+            public bool Selected;
+            public List<Payload> MapPayloads = new List<Payload>();
+        }
+
         public class DynTab : TabBase
         {
-            public DynTab(string title, List<String> text, bool enabled)
+            public DynTab(string title, List<ChatText> chat, bool enabled)
             {
                 Title = title;
-                Text = text;
+                Chat = chat;
                 Enabled = enabled;
             }
 
         }
-
-
 
     }
 
