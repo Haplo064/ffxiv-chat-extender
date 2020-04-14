@@ -19,6 +19,7 @@ using Num = System.Numerics;
 
 //TODO
 //Add colour config - Split into 3?
+//Add Custom wrapper
 
 //Add select+copy?
 //Add locking in place
@@ -255,12 +256,15 @@ namespace DalamudPlugin
                                 ImGui.BeginChild("scrolling", new Num.Vector2(0, -footer), false);
                                 foreach (ChatText line in tab.Chat)
                                 {
-                                    string tmp = "";
-                                    if (tab.Config[0]) { tmp += line.Time + " "; }
+
+                                    if (tab.Config[0]) { ImGui.TextWrapped(line.Time + " "); ImGui.SameLine(); }
+                                    if (tab.Config[1]) { ImGui.TextWrapped(line.Channel + " "); ImGui.SameLine(); }
+                                    if (line.Sender.Length > 0) { ImGui.TextWrapped(line.Sender + ":"); ImGui.SameLine(); }
+                                    /*
                                     if (tab.Config[1]) { tmp += line.Channel + " "; }
                                     if (line.Sender.Length > 0) { tmp += line.Sender + ":"; }
-                                    tmp += line.Text;
-                                    ImGui.Selectable(tmp);
+                                    */
+                                    ImGui.TextWrapped(line.Text);
                                 }
                                 if (tab.Scroll == true)
                                 {
@@ -500,15 +504,7 @@ namespace DalamudPlugin
         {
             var senderName = sender.TextValue;
             List<Payload> payloads = message.Payloads;
-            String messageString = message.TextValue;
-            String predictedLanguage = Lang(messageString);
 
-            if (predictedLanguage == language)
-            {
-                Task.Run(() => Tran(type, messageString, senderName));
-            }
-
-            //Serilog.Log.Error(((int)type).ToString() + " " + type);
 
             foreach (var tab in items)
             {
@@ -520,27 +516,57 @@ namespace DalamudPlugin
                     tmp.Time = GetTime();
                     tmp.Channel = GetChannelName(type.ToString());
                     tmp.Sender = senderName;
-                    tmp.Text = messageString;
+                    String rawtext = "";
+
+
+
+
 
                     foreach (var payload in payloads)
                     {
+                        if(payload.Type == PayloadType.RawText)
+                        {
+                            rawtext += payload.ToString().Split(new[] { ' ' }, 4)[3];
+                        }
+
+                        PluginLog.Log(payload.ToString());
+
+                        /*
                         if(payload.Type == PayloadType.MapLink)
                         {
                             tmp.MapPayloads.Add(payload);
                         }
+                        */
+                    }
+
+                    tmp.Text = rawtext;
+
+                    String messageString = message.TextValue;
+                    String predictedLanguage = Lang(messageString);
+
+                    if (predictedLanguage == language)
+                    {
+                        Task.Run(() => Tran(type, messageString, senderName));
                     }
 
                     tab.Chat.Add(tmp);
+
+                    /* Taken out until linkage working
                     foreach(Dalamud.Game.Chat.SeStringHandling.Payloads.MapLinkPayload MapLinks in tmp.MapPayloads)
                     {
                         ChatText map = new ChatText();
                         map.Time = "";
                         map.Channel = "";
                         map.Sender = "[M]";
-                        map.Text = MapLinks.XCoord.ToString();
+
+                        map.Text = MapLinks.XCoord.ToString() + "|";
+                        map.Text += MapLinks.RawX.ToString() + "|";
+                        MapLinks.Resolve();
+                        map.Text += MapLinks.XCoord.ToString() + "|";
 
                         tab.Chat.Add(map);
                     }
+                    */
                     if (tab.AutoScroll == true)
                     {
                         tab.Scroll = true;
