@@ -18,8 +18,7 @@ using Dalamud.Configuration;
 using Num = System.Numerics;
 
 //TODO
-//Add colour config - Split into 3?
-//Add Custom wrapper
+//Add colour configs
 
 //Add select+copy?
 //Add locking in place
@@ -35,6 +34,8 @@ using Num = System.Numerics;
 //Add in Yandex Key via config
 //Add in support for more than japanese?
 //Add in config for language selections?
+
+//Add Custom wrapper <<DONE>>
 
 
 namespace DalamudPlugin
@@ -253,6 +254,7 @@ namespace DalamudPlugin
                             if (ImGui.BeginTabItem(tab.Title))
                             {
                                 float footer = (ImGui.GetStyle().ItemSpacing.Y) / 2 + ImGui.GetFrameHeightWithSpacing();
+                                ImGui.PushStyleVar(ImGuiStyleVar.ItemSpacing, new Num.Vector2(4, 0));
                                 ImGui.BeginChild("scrolling", new Num.Vector2(0, -footer), false);
                                 foreach (ChatText line in tab.Chat)
                                 {
@@ -260,11 +262,33 @@ namespace DalamudPlugin
                                     if (tab.Config[0]) { ImGui.TextWrapped(line.Time + " "); ImGui.SameLine(); }
                                     if (tab.Config[1]) { ImGui.TextWrapped(line.Channel + " "); ImGui.SameLine(); }
                                     if (line.Sender.Length > 0) { ImGui.TextWrapped(line.Sender + ":"); ImGui.SameLine(); }
-                                    /*
-                                    if (tab.Config[1]) { tmp += line.Channel + " "; }
-                                    if (line.Sender.Length > 0) { tmp += line.Sender + ":"; }
-                                    */
-                                    ImGui.TextWrapped(line.Text);
+
+                                    int count = 0;
+                                    foreach(TextTypes textTypes in line.Text)
+                                    {
+                                        if (textTypes.Type == PayloadType.RawText)
+                                        {
+                                            Wrap(textTypes.Text);
+                                        }
+
+                                        if (textTypes.Type == PayloadType.MapLink)
+                                        {
+                                            if( ImGui.GetContentRegionAvail().X - 5 - ImGui.CalcTextSize(textTypes.Text).X < 0 ) { ImGui.Text(""); }
+                                            if (ImGui.SmallButton(textTypes.Text))
+                                            {
+                                                //MAP HANDLING WILL GO HERE
+                                                PluginLog.Log("Clicked on " + textTypes.Text);
+                                            }
+                                        }
+                                        // + "|" + ImGui.CalcTextSize(textTypes.Text).X.ToString() + "|" + ImGui.GetContentRegionAvail().X.ToString());
+                                        if (count < (line.Text.Count -1))
+                                        { 
+                                            ImGui.SameLine();
+                                            count++;
+                                        }
+                                        
+                                    }
+
                                 }
                                 if (tab.Scroll == true)
                                 {
@@ -405,6 +429,27 @@ namespace DalamudPlugin
             }
         }
 
+        public void Wrap(String input)
+        {
+            String[] inputArray = input.Split(' ');
+
+            int count = 0;
+            foreach(String splits in inputArray)
+            {
+                if (ImGui.GetContentRegionAvail().X - 5 - ImGui.CalcTextSize(splits).X < 0) { ImGui.Text(""); }
+                ImGui.Text(splits);
+
+                if (count < (inputArray.Length - 1))
+                {
+                    ImGui.SameLine();
+                    count++;
+                }
+            }
+
+
+
+        }
+
         public int EnabledTabs(List<TabBase> countMe)
         {
             int count = 0;
@@ -516,17 +561,46 @@ namespace DalamudPlugin
                     tmp.Time = GetTime();
                     tmp.Channel = GetChannelName(type.ToString());
                     tmp.Sender = senderName;
-                    String rawtext = "";
+                    List<TextTypes> rawtext = new List<TextTypes>();
 
-
-
-
-
+                    int replace = 0;
+                    PayloadType payloadType = PayloadType.RawText;
                     foreach (var payload in payloads)
                     {
-                        if(payload.Type == PayloadType.RawText)
+                        //if (payload.Type == PayloadType.AutoTranslateText) { texttype = 0; }
+                        //if (payload.Type == PayloadType.Item) { texttype = 1; }
+                        if (payload.Type == PayloadType.MapLink) { replace = 2; payloadType = PayloadType.MapLink; }
+                        //if (payload.Type == PayloadType.Player) { texttype = 3; }
+                        //if (payload.Type == PayloadType.RawText) { texttype = 4; }
+                        //if (payload.Type == PayloadType.Status) { texttype = 5; }
+                        //if (payload.Type == PayloadType.UIForeground) { texttype = 6; }
+                        //if (payload.Type == PayloadType.UIGlow) { texttype = 7; }
+
+                        if (payload.Type == PayloadType.RawText)
                         {
-                            rawtext += payload.ToString().Split(new[] { ' ' }, 4)[3];
+                            TextTypes wrangler = new TextTypes();
+                            wrangler.Text = payload.ToString().Split(new[] { ' ' }, 4)[3];
+
+                            if ( replace == 1 )
+                            {
+                                if (payloadType == PayloadType.MapLink)
+                                {
+                                    rawtext.RemoveAt(rawtext.Count - 1);
+                                }
+                            }
+
+                            if (replace == 0)
+                            {
+                                payloadType = PayloadType.RawText;
+                            }
+
+                            wrangler.Type = payloadType;
+                            rawtext.Add(wrangler);
+
+                            if (replace > 0)
+                            {
+                                replace--;
+                            }
                         }
 
                         PluginLog.Log(payload.ToString());
@@ -613,7 +687,11 @@ namespace DalamudPlugin
                     tmp.Time = GetTime();
                     tmp.Channel= GetChannelName(type.ToString());
                     tmp.Sender = senderName;
-                    tmp.Text = "<<" + output + ">>";
+
+                    TextTypes translate = new TextTypes();
+                    translate.Text = "<<" + output + ">>";
+                    translate.Type = PayloadType.RawText;
+                    tmp.Text.Add(translate);
 
                     tab.Chat.Add(tmp);
                 }
@@ -683,6 +761,12 @@ namespace DalamudPlugin
             public bool Scroll = false;
         }
 
+        public class TextTypes
+        {
+            public string Text;
+            public PayloadType Type;
+        }
+
         bool CheckDupe(List<TabBase> items, string title)
         {
             foreach (var tab in items)
@@ -697,7 +781,7 @@ namespace DalamudPlugin
             public string Time;
             public string Channel;
             public string Sender;
-            public string Text;
+            public List<TextTypes> Text = new List<TextTypes>();
             public bool Selected;
             public List<Payload> MapPayloads = new List<Payload>();
         }
