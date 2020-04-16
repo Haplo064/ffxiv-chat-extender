@@ -18,10 +18,6 @@ using Num = System.Numerics;
 
 //TODO
 //Add select+copy?
-//Add locking in place
-//Add clickthrough
-//Add write to file
-//Add customizable translate surrounds
 //Add spacing config
 //Font? - Likely change to gothic
 //Add in handling for quick-translate stuff
@@ -31,6 +27,10 @@ using Num = System.Numerics;
 //Add in support for more than japanese?
 //Add in config for language selections?
 
+//Add write to file <<DONE>>
+//Add locking in place <<DONE>>
+//Add clickthrough <<DONE>>
+//Add customizable translate surrounds <<DONE>>
 //Add colour configs <<DONE>>
 //Fix up missing chat text <<DONE>>
 //Add Custom wrapper <<DONE>>
@@ -42,7 +42,7 @@ namespace DalamudPlugin
     {
         // Dalamud Plugin
 
-        public string Name => "Translator Plugin";
+        public string Name => "Chat Extender";
         private DalamudPluginInterface pluginInterface;
         private bool chatWindow = false;
         private bool configWindow = false;
@@ -57,6 +57,20 @@ namespace DalamudPlugin
         public string tempTitle = "Title";
         public float alpha = 0.2f;
 
+        public string lTr = "<<";
+        public string rTr = ">>";
+
+        static bool no_titlebar = true;
+        static bool no_scrollbar = false;
+        static bool no_menu = true;
+        static bool no_move = false;
+        static bool no_resize = false;
+        static bool no_collapse = true;
+        static bool no_close = true;
+        static bool no_nav = false;
+        static bool no_mouse = false;
+
+        static string pathString = Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData)+@"\XIVLauncher\installedPlugins\ChatExtender\Logs\";
 
         public Num.Vector4[] logColour =
         {
@@ -117,6 +131,20 @@ namespace DalamudPlugin
             Configuration = pluginInterface.GetPluginConfig() as ChatExtenderPluginConfiguration ?? new ChatExtenderPluginConfiguration();
 
             try
+            { rTr = Configuration.RTr.ToString(); }
+            catch (Exception)
+            {
+                PluginLog.LogError("Failed to Load right Translate Surround!");
+            }
+
+            try
+            { lTr = Configuration.LTr.ToString(); }
+            catch (Exception)
+            {
+                PluginLog.LogError("Failed to Load left Translate Surround!");
+            }
+
+            try
             {chanColour = Configuration.ChanColour.ToArray();}
             catch (Exception)
             {PluginLog.LogError("No ChanColour to load!");}
@@ -166,6 +194,40 @@ namespace DalamudPlugin
                 alpha = 0.2f;
             }
 
+            try
+            { no_mouse = Configuration.NoMouse; }
+            catch (Exception)
+            {
+                PluginLog.LogError("Failed to Load NoMouse Config!");
+                no_mouse = false;
+            }
+
+            try
+            { no_move = Configuration.NoMove; }
+            catch (Exception)
+            {
+                PluginLog.LogError("Failed to Load NoMove Config!");
+                no_move = false;
+            }
+
+            try
+            { no_resize = Configuration.NoResize; }
+            catch (Exception)
+            {
+                PluginLog.LogError("Failed to Load NoMove Config!");
+                no_resize = false;
+            }
+
+            try
+            { no_mouse = Configuration.NoMouse; }
+            catch (Exception)
+            {
+                PluginLog.LogError("Failed to Load NoMouse Config!");
+                no_mouse = false;
+            }
+
+
+
             //TODO: try/catch this?
             if (Configuration.Items == null)
             {
@@ -182,24 +244,25 @@ namespace DalamudPlugin
                 }
                 else
                 {
-                    foreach (var strip in Configuration.Items)
-                    {
-                        strip.Chat = new List<ChatText>();
-                    }
-                    foreach (var obj in Configuration.Items)
-                    {
-                        if (obj.Enabled == true)
-                        {
-                            itemsTemp.Add(obj);
-                        }
-                    }
-                    Configuration.Items = itemsTemp.ToList();
-
                     //Serilog.Log.Information("Normal DynTab List");
                     items = Configuration.Items.ToList();
+                }
 
+            }
+
+            if (items[0].Config.Length==3)
+            {
+                foreach(TabBase item in items)
+                {
+                    bool[] temp = { false, false, false, false, false, false, false, false, false, false };
+                    temp[0] = item.Config[0];
+                    temp[1] = item.Config[1];
+                    temp[2] = item.Config[2];
+                    item.Config = temp;
                 }
             }
+
+            SaveConfig();
 
             TransY.Make("https://translate.yandex.net/api/v1.5/tr.json/translate", Configuration.YandexKey);
 
@@ -219,6 +282,23 @@ namespace DalamudPlugin
             configWindow = true;
         }
 
+        private List<TabBase> CopyAndStripItems(List<TabBase> items)
+        {
+            List<TabBase> clone = new List<TabBase>();
+            foreach(TabBase tabs in items)
+            {
+                TabBase babyClone = new TabBase();
+                babyClone.AutoScroll = tabs.AutoScroll;
+                babyClone.Chat = new List<ChatText>();
+                babyClone.Config = tabs.Config.ToArray();
+                babyClone.Enabled = tabs.Enabled;
+                babyClone.Logs = tabs.Logs.ToArray();
+                babyClone.Scroll = tabs.Scroll;
+                babyClone.Title = tabs.Title.ToString();
+                clone.Add(babyClone);
+            }
+            return clone;
+        }
 
         private void OnTranslateCommand(string command, string arguments)
         {
@@ -288,15 +368,32 @@ namespace DalamudPlugin
             public float Alpha { get; set; }
             public Num.Vector4[] ChanColour { get; set; }
             public Num.Vector4[] LogColour { get; set; }
+            public string LTr { get; set; }
+            public string RTr { get; set; }
+            public bool NoMouse { get; set; }
+            public bool NoMove { get; set; }
+            public bool NoResize { get; set; }
         }
 
         private void ChatUI()
         {
+            ImGuiWindowFlags chat_window_flags = 0;
+            ImGuiWindowFlags chat_sub_window_flags = 0;
+
+            if (no_titlebar) chat_window_flags |= ImGuiWindowFlags.NoTitleBar;
+            if (no_scrollbar) chat_window_flags |= ImGuiWindowFlags.NoScrollbar;
+            if (!no_menu) chat_window_flags |= ImGuiWindowFlags.MenuBar;
+            if (no_move) chat_window_flags |= ImGuiWindowFlags.NoMove;
+            if (no_resize) chat_window_flags |= ImGuiWindowFlags.NoResize;
+            if (no_collapse) chat_window_flags |= ImGuiWindowFlags.NoCollapse;
+            if (no_nav) chat_window_flags |= ImGuiWindowFlags.NoNav;
+            if (no_mouse) { chat_window_flags |= ImGuiWindowFlags.NoMouseInputs; chat_sub_window_flags |= ImGuiWindowFlags.NoMouseInputs; }
+ 
             if (chatWindow)
             {
                 ImGui.SetNextWindowSize(new Num.Vector2(200, 100), ImGuiCond.FirstUseEver);
                 ImGui.SetNextWindowBgAlpha(alpha);
-                ImGui.Begin("Another Window", ref chatWindow, ImGuiWindowFlags.NoTitleBar);
+                ImGui.Begin("Another Window", ref chatWindow, chat_window_flags);
                 ImGuiTabBarFlags tab_bar_flags = ImGuiTabBarFlags.None;
                 if (ImGui.BeginTabBar("Tabs", tab_bar_flags))
                 {
@@ -309,13 +406,13 @@ namespace DalamudPlugin
                             {
                                 float footer = (ImGui.GetStyle().ItemSpacing.Y) / 2 + ImGui.GetFrameHeightWithSpacing();
                                 ImGui.PushStyleVar(ImGuiStyleVar.ItemSpacing, new Num.Vector2(4, 0));
-                                ImGui.BeginChild("scrolling", new Num.Vector2(0, -footer), false);
+                                ImGui.BeginChild("scrolling", new Num.Vector2(0, -footer), false, chat_sub_window_flags);
 
 
                                 foreach (ChatText line in tab.Chat)
                                 {
 
-                                    if (tab.Config[0]) { ImGui.TextColored(chanColour[ConvertForArray(line.Channel)],line.Time + " "); ImGui.SameLine(); }
+                                    if (tab.Config[0]) { ImGui.TextColored(chanColour[ConvertForArray(line.Channel)], line.Time + " "); ImGui.SameLine(); }
                                     if (tab.Config[1]) { ImGui.TextColored(chanColour[ConvertForArray(line.Channel)], line.ChannelShort + " "); ImGui.SameLine(); }
                                     if (line.Sender.Length > 0) { ImGui.TextColored(chanColour[ConvertForArray(line.Channel)], line.Sender + ":"); ImGui.SameLine(); }
 
@@ -338,7 +435,7 @@ namespace DalamudPlugin
                                                 PluginLog.Log("Clicked on " + textTypes.Payload.ToString());
                                             }
                                         }
-                                        
+
                                         if (count < (line.Text.Count - 1))
                                         {
                                             ImGui.SameLine();
@@ -354,6 +451,7 @@ namespace DalamudPlugin
                                     ImGui.SetScrollHereY();
                                     tab.Scroll = false;
                                 }
+                                ImGui.PopStyleVar();
                                 ImGui.EndChild();
                                 ImGui.EndTabItem();
                             }
@@ -377,10 +475,27 @@ namespace DalamudPlugin
                         float footer1 = (ImGui.GetStyle().ItemSpacing.Y) / 2 + ImGui.GetFrameHeightWithSpacing();
                         ImGui.BeginChild("scrolling", new Num.Vector2(0, -footer1), false);
                         ImGui.Text("");
-                        ImGui.Checkbox("Inject Translate into chat", ref injectChat);
-                        ImGui.Checkbox("Display Chat Extender", ref chatWindow);
+                        ImGui.Columns(3);
+                        ImGui.Checkbox("Inject Translation", ref injectChat); ImGui.NextColumn();
+                        ImGui.Checkbox("Chat Extender", ref chatWindow); ImGui.NextColumn();
+                        ImGui.Text(""); ImGui.NextColumn();
+                        ImGui.Checkbox("Lock Position", ref no_move); ImGui.NextColumn();
+                        ImGui.Checkbox("Lock Size", ref no_resize); ImGui.NextColumn();
+                        ImGui.Checkbox("ClickThrough", ref no_mouse); ImGui.NextColumn();
+
+                        ImGui.Columns(1);
+                        ImGui.Text("Surrounds of Translated text");
+                        ImGui.PushItemWidth(24);
+                        ImGui.InputText("##Left", ref lTr, 3); ImGui.SameLine();
+                        ImGui.PopItemWidth();
+                        ImGui.Text("Translation"); ImGui.SameLine();
+                        ImGui.PushItemWidth(24);
+                        ImGui.InputText("##Right", ref rTr, 3);
+                        ImGui.PopItemWidth();
                         ImGui.Text("");
-                        ImGui.SliderFloat("Chat Extender Alpha", ref alpha, 0.1f, 0.999f);
+                        
+                        ImGui.Text("");
+                        ImGui.SliderFloat("Chat Extender Alpha", ref alpha, 0.001f, 0.999f);
                         ImGui.Text("");
 
                         if (ImGui.TreeNode("Colours"))
@@ -413,16 +528,10 @@ namespace DalamudPlugin
                         }
                         ImGui.Text("");
 
-                        //TODO: Make this not clear the fucking log by using the same reference
                         if (ImGui.Button("Save and Close Config"))
                         {
-                            Configuration.Items = items.ToList();
-                            Configuration.Inject = injectChat;
-                            Configuration.Extender = chatWindow;
-                            Configuration.Alpha = alpha;
-                            Configuration.ChanColour = chanColour.ToArray();
-                            Configuration.LogColour = logColour.ToArray();
-                            this.pluginInterface.SavePluginConfig(Configuration);
+                            SaveConfig();
+
                             configWindow = false;
                         }
                         ImGui.EndChild();
@@ -440,7 +549,7 @@ namespace DalamudPlugin
                                 {
                                     float footer2 = (ImGui.GetStyle().ItemSpacing.Y) / 2 + ImGui.GetFrameHeightWithSpacing();
                                     ImGui.BeginChild("scrolling", new Num.Vector2(0, -footer2), false);
-                                    ImGui.InputText("Tab Name", ref tempTitle, bufSize);
+                                    ImGui.InputText("##Tab Name", ref tempTitle, bufSize);
                                     ImGui.SameLine();
                                     if (ImGui.Button("Set Tab Title"))
                                     {
@@ -458,28 +567,31 @@ namespace DalamudPlugin
                                     ImGui.SameLine();
                                     ImGui.Checkbox("Translate", ref tab.Config[2]);
                                     ImGui.Checkbox("AutoScroll", ref tab.AutoScroll);
-                                    if (ImGui.TreeNode("Channels"))
-                                    {
-                                        ImGui.Columns(2);
-                                        ImGui.Text("Enable"); ImGui.NextColumn();
-                                        ImGui.Text("Channels"); ImGui.NextColumn();
+                                    ImGui.SameLine();
+                                    ImGui.Checkbox("Save to file", ref tab.Config[3]);
 
-                                        //TODO Shrink this with Channels[]
-                                        for (int i = 0; i < 37; i++)
-                                        {
-                                            ImGui.PushStyleColor(ImGuiCol.Text, chanColour[i]);
-                                            ImGui.Checkbox("[" + Channels[i] + "]", ref tab.Logs[i]); ImGui.NextColumn();
-                                            ImGui.PopStyleColor();
-                                        }
-                                        ImGui.Columns(1);
-                                    }
+                                    //TODO: Add a confirm prompt
                                     if (ImGui.Button("Delete Tab"))
                                     {
                                         if (EnabledTabs(items) > 1)
                                         { tab.Enabled = false; }
                                     }
+
+
+                                    ImGui.Columns(2);
+                                    ImGui.Text("Enable Channels"); ImGui.NextColumn();
+                                    ImGui.Text(""); ImGui.NextColumn();
+
+                                    for (int i = 0; i < 37; i++)
+                                    {
+                                        ImGui.PushStyleColor(ImGuiCol.Text, chanColour[i]);
+                                        ImGui.Checkbox("[" + Channels[i] + "]", ref tab.Logs[i]); ImGui.NextColumn();
+                                        ImGui.PopStyleColor();
+                                    }
+                                    ImGui.Columns(1);
                                     ImGui.EndChild();
-                                    ImGui.TreePop();
+
+
                                 }
                             }
                         }
@@ -490,6 +602,22 @@ namespace DalamudPlugin
                 ImGui.EndTabBar();
                 ImGui.EndChild();
             }
+        }
+
+        public void SaveConfig()
+        {
+            Configuration.Items = CopyAndStripItems(items);
+            Configuration.Inject = injectChat;
+            Configuration.Extender = chatWindow;
+            Configuration.Alpha = alpha;
+            Configuration.ChanColour = chanColour.ToArray();
+            Configuration.LogColour = logColour.ToArray();
+            Configuration.RTr = rTr.ToString();
+            Configuration.LTr = lTr.ToString();
+            Configuration.NoMouse = no_mouse;
+            Configuration.NoMove = no_move;
+            Configuration.NoResize = no_resize;
+            this.pluginInterface.SavePluginConfig(Configuration);
         }
 
         public void Wrap(String input)
@@ -508,9 +636,6 @@ namespace DalamudPlugin
                     count++;
                 }
             }
-
-
-
         }
 
         public int EnabledTabs(List<TabBase> countMe)
@@ -692,6 +817,31 @@ namespace DalamudPlugin
 
                     tab.Chat.Add(tmp);
 
+                    if (tab.Chat.Count > 256)
+                    {
+                        tab.Chat.RemoveAt(0);
+                    }
+
+                    if (tab.Config[3])
+                    {
+                        //Writing to file
+                        string filename = GetDate() + "_" + tab.Title + ".txt";
+                        if (!System.IO.Directory.Exists(pathString))
+                        {
+                            System.IO.Directory.CreateDirectory(pathString);
+                        }
+
+                        if (!System.IO.File.Exists(pathString + filename))
+                        {
+                            System.IO.File.WriteAllText(pathString + filename, tab.Title + "\n");
+                        }
+
+                        using (System.IO.StreamWriter file = new System.IO.StreamWriter(pathString + filename, true))
+                        {
+                            file.WriteLine(tmp.Time + "[" + tmp.Channel + "]" + "<" + tmp.Sender + ">:" + TextTypesToString(rawtext));
+                        }
+                    }
+
                     if (tab.AutoScroll == true)
                     {
                         tab.Scroll = true;
@@ -699,6 +849,56 @@ namespace DalamudPlugin
                 }
 
             }
+        }
+
+        public void Broadcast(string message)
+        {
+
+            foreach (var tab in items)
+            {
+                ChatText tmp = new ChatText();
+
+                tmp.Time = GetTime();
+                tmp.ChannelShort = "[N]";
+                tmp.Channel = "Notice";
+                tmp.Sender = "";
+                tmp.ChannelColour = ConvertForArray("Notice");
+                List<TextTypes> rawtext = new List<TextTypes>();
+
+                PayloadType payloadType = PayloadType.RawText;
+                TextTypes wrangler = new TextTypes();
+                wrangler.Text = message;
+                wrangler.Type = payloadType;
+                rawtext.Add(wrangler);
+
+                tmp.Text = rawtext;
+                tab.Chat.Add(tmp);
+
+                if (tab.Chat.Count > 256)
+                {
+                    tab.Chat.RemoveAt(0);
+                }
+
+                if (tab.AutoScroll == true)
+                {
+                    tab.Scroll = true;
+                }
+            }
+        }
+
+        public string TextTypesToString(List<TextTypes> textTypes)
+        {
+            string str = "";
+            foreach(TextTypes texts in textTypes)
+            {
+                str += texts.Text + " ";
+            }
+            return str;
+        }
+
+        public string GetDate()
+        {
+            return DateTime.Now.ToString("yyyyMMdd");
         }
 
         public string GetTime()
@@ -725,7 +925,7 @@ namespace DalamudPlugin
 
             if (injectChat == true)
             {
-                PrintChat(type, senderName, "<<" + output + ">>");
+                PrintChat(type, senderName, lTr + output + rTr);
             }
 
             foreach (var tab in items)
@@ -741,7 +941,7 @@ namespace DalamudPlugin
                     tmp.Sender = senderName;
 
                     TextTypes translate = new TextTypes();
-                    translate.Text = "<<" + output + ">>";
+                    translate.Text = lTr + output + rTr;
                     translate.Type = PayloadType.RawText;
                     tmp.Text.Add(translate);
 
@@ -808,7 +1008,9 @@ namespace DalamudPlugin
             // 0 = Timestamp
             // 1 = Channel
             // 2 = Translate
-            public bool[] Config = { false, false, true };
+            // 3 = Write
+            // 4-9  = placeholders
+            public bool[] Config = { false, false, false, false,false,false,false,false,false,false };
             public bool AutoScroll = true;
             public bool Scroll = false;
         }
