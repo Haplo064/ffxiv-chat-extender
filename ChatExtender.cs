@@ -69,8 +69,13 @@ namespace DalamudPlugin
         static bool no_close = true;
         static bool no_nav = false;
         static bool no_mouse = false;
+        static bool no_mouse2 = false;
+        static bool flickback = false;
 
-        static string pathString = Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData)+@"\XIVLauncher\installedPlugins\ChatExtender\Logs\";
+        static int space_hor = 4;
+        static int space_ver = 0;
+        
+        static string pathString = Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments) + @"\FFXIV_ChatExtender\Logs\";
 
         public Num.Vector4[] logColour =
         {
@@ -195,14 +200,6 @@ namespace DalamudPlugin
             }
 
             try
-            { no_mouse = Configuration.NoMouse; }
-            catch (Exception)
-            {
-                PluginLog.LogError("Failed to Load NoMouse Config!");
-                no_mouse = false;
-            }
-
-            try
             { no_move = Configuration.NoMove; }
             catch (Exception)
             {
@@ -224,6 +221,30 @@ namespace DalamudPlugin
             {
                 PluginLog.LogError("Failed to Load NoMouse Config!");
                 no_mouse = false;
+            }
+
+            try
+            { no_mouse = Configuration.NoMouse2; }
+            catch (Exception)
+            {
+                PluginLog.LogError("Failed to Load NoMouse2 Config!");
+                no_mouse2 = false;
+            }
+
+            try
+            { space_hor = Configuration.Space_Hor; }
+            catch (Exception)
+            {
+                PluginLog.LogError("Failed to Load Horizontal Spacing!");
+                space_hor = 4;
+            }
+
+            try
+            { no_mouse = Configuration.NoMouse2; }
+            catch (Exception)
+            {
+                PluginLog.LogError("Failed to Load Vertical Spacing!");
+                space_ver = 0;
             }
 
 
@@ -371,8 +392,11 @@ namespace DalamudPlugin
             public string LTr { get; set; }
             public string RTr { get; set; }
             public bool NoMouse { get; set; }
+            public bool NoMouse2 { get; set; }
             public bool NoMove { get; set; }
             public bool NoResize { get; set; }
+            public int Space_Hor { get; set; }
+            public int Space_Ver { get; set; }
         }
 
         private void ChatUI()
@@ -387,10 +411,16 @@ namespace DalamudPlugin
             if (no_resize) chat_window_flags |= ImGuiWindowFlags.NoResize;
             if (no_collapse) chat_window_flags |= ImGuiWindowFlags.NoCollapse;
             if (no_nav) chat_window_flags |= ImGuiWindowFlags.NoNav;
-            if (no_mouse) { chat_window_flags |= ImGuiWindowFlags.NoMouseInputs; chat_sub_window_flags |= ImGuiWindowFlags.NoMouseInputs; }
- 
+            if (no_mouse) { chat_window_flags |= ImGuiWindowFlags.NoMouseInputs; }
+            if (no_mouse2) { chat_sub_window_flags |= ImGuiWindowFlags.NoMouseInputs; }
+
             if (chatWindow)
             {
+                if(flickback)
+                {
+                    no_mouse = false;
+                    flickback = false;
+                }
                 ImGui.SetNextWindowSize(new Num.Vector2(200, 100), ImGuiCond.FirstUseEver);
                 ImGui.SetNextWindowBgAlpha(alpha);
                 ImGui.Begin("Another Window", ref chatWindow, chat_window_flags);
@@ -405,9 +435,9 @@ namespace DalamudPlugin
                             if (ImGui.BeginTabItem(tab.Title))
                             {
                                 float footer = (ImGui.GetStyle().ItemSpacing.Y) / 2 + ImGui.GetFrameHeightWithSpacing();
-                                ImGui.PushStyleVar(ImGuiStyleVar.ItemSpacing, new Num.Vector2(4, 0));
+                                ImGui.PushStyleVar(ImGuiStyleVar.ItemSpacing, new Num.Vector2(space_hor, space_ver));
                                 ImGui.BeginChild("scrolling", new Num.Vector2(0, -footer), false, chat_sub_window_flags);
-
+                                
 
                                 foreach (ChatText line in tab.Chat)
                                 {
@@ -453,6 +483,19 @@ namespace DalamudPlugin
                                 }
                                 ImGui.PopStyleVar();
                                 ImGui.EndChild();
+
+                                if (no_mouse2 && !no_mouse)
+                                {
+                                    Num.Vector2 vMin = ImGui.GetWindowContentRegionMin();
+                                    Num.Vector2 vMax = ImGui.GetWindowContentRegionMax();
+
+                                    vMin.X += ImGui.GetWindowPos().X;
+                                    vMin.Y += ImGui.GetWindowPos().Y + 22;
+                                    vMax.X += ImGui.GetWindowPos().X;
+                                    vMax.Y += ImGui.GetWindowPos().Y;
+
+                                    if (ImGui.IsMouseHoveringRect(vMin, vMax)) { no_mouse = true; flickback = true; }
+                                }
                                 ImGui.EndTabItem();
                             }
                         }
@@ -476,26 +519,49 @@ namespace DalamudPlugin
                         ImGui.BeginChild("scrolling", new Num.Vector2(0, -footer1), false);
                         ImGui.Text("");
                         ImGui.Columns(3);
-                        ImGui.Checkbox("Inject Translation", ref injectChat); ImGui.NextColumn();
-                        ImGui.Checkbox("Chat Extender", ref chatWindow); ImGui.NextColumn();
+                        
+                        ImGui.Checkbox("Inject Translation", ref injectChat);
+                        if (ImGui.IsItemHovered()) { ImGui.SetTooltip("Inject translated text into the normal FFXIV Chatbox"); } ImGui.NextColumn();
+                        ImGui.Checkbox("Chat Extender", ref chatWindow);
+                        if (ImGui.IsItemHovered()) { ImGui.SetTooltip("Enable/Disable the Chat Extender"); } ImGui.NextColumn();
                         ImGui.Text(""); ImGui.NextColumn();
-                        ImGui.Checkbox("Lock Position", ref no_move); ImGui.NextColumn();
-                        ImGui.Checkbox("Lock Size", ref no_resize); ImGui.NextColumn();
-                        ImGui.Checkbox("ClickThrough", ref no_mouse); ImGui.NextColumn();
+                        
+                        ImGui.Checkbox("Lock Position", ref no_move);
+                        if (ImGui.IsItemHovered()) { ImGui.SetTooltip("Lock/Unlock the position of the Chat Extender"); }
+                        ImGui.NextColumn();
+                        ImGui.Checkbox("Lock Size", ref no_resize);
+                        if (ImGui.IsItemHovered()) { ImGui.SetTooltip("Lock/Unlock the size of the Chat Extender"); }
+                        ImGui.NextColumn();
+                        ImGui.Checkbox("ClickThrough Tab Bar", ref no_mouse);
+                        if (ImGui.IsItemHovered()) { ImGui.SetTooltip("Enable/Disable being able to clickthrough the Tab Bar of the Chat Extender"); }
+                        ImGui.NextColumn();
+
+                        ImGui.Checkbox("ClickThrough Chat", ref no_mouse2);
+                        if (ImGui.IsItemHovered()) { ImGui.SetTooltip("Enable/Disable being able to clickthrough the Chat Extension chatbox"); }
+                        ImGui.NextColumn();
+                        ImGui.InputInt("H Spacing",ref space_hor);
+                        if (ImGui.IsItemHovered()) { ImGui.SetTooltip("Horizontal spacing of chat text"); }
+                        ImGui.NextColumn();
+                        ImGui.InputInt("V Spacing", ref space_ver);
+                        if (ImGui.IsItemHovered()) { ImGui.SetTooltip("Vertical spacing of cha text"); }
+                        ImGui.NextColumn();
 
                         ImGui.Columns(1);
                         ImGui.Text("Surrounds of Translated text");
                         ImGui.PushItemWidth(24);
                         ImGui.InputText("##Left", ref lTr, 3); ImGui.SameLine();
+                        if (ImGui.IsItemHovered()) { ImGui.SetTooltip("Alter the characters on the left of Translated text"); }
                         ImGui.PopItemWidth();
                         ImGui.Text("Translation"); ImGui.SameLine();
                         ImGui.PushItemWidth(24);
                         ImGui.InputText("##Right", ref rTr, 3);
+                        if (ImGui.IsItemHovered()) { ImGui.SetTooltip("Alter the characters on the right of Translated text"); }
                         ImGui.PopItemWidth();
                         ImGui.Text("");
                         
                         ImGui.Text("");
                         ImGui.SliderFloat("Chat Extender Alpha", ref alpha, 0.001f, 0.999f);
+                        if (ImGui.IsItemHovered()) { ImGui.SetTooltip("Alter the Alpha of the Chat Extender"); }
                         ImGui.Text("");
 
                         if (ImGui.TreeNode("Colours"))
@@ -526,6 +592,7 @@ namespace DalamudPlugin
                             items.Add(new DynTab(tempTitle, new List<ChatText>(), true));
                             tempTitle = "Title";
                         }
+                        if (ImGui.IsItemHovered()) { ImGui.SetTooltip("Add a new Tab to the Chat Extender"); }
                         ImGui.Text("");
 
                         if (ImGui.Button("Save and Close Config"))
@@ -534,6 +601,7 @@ namespace DalamudPlugin
 
                             configWindow = false;
                         }
+                        if (ImGui.IsItemHovered()) { ImGui.SetTooltip("Changes will only be saved for the current session unless you do this!"); }
                         ImGui.EndChild();
                         ImGui.EndTabItem();
                     }
@@ -561,14 +629,20 @@ namespace DalamudPlugin
                                         tab.Title = tempTitle;
                                         tempTitle = "Title";
                                     }
+                                    if (ImGui.IsItemHovered()) { ImGui.SetTooltip("Change the title of the Tab"); }
                                     ImGui.Checkbox("Time Stamp", ref tab.Config[0]);
+                                    if (ImGui.IsItemHovered()) { ImGui.SetTooltip("Show Timestamps in this Tab"); }
                                     ImGui.SameLine();
                                     ImGui.Checkbox("Channel", ref tab.Config[1]);
+                                    if (ImGui.IsItemHovered()) { ImGui.SetTooltip("Show the Channel the message came from"); }
                                     ImGui.SameLine();
                                     ImGui.Checkbox("Translate", ref tab.Config[2]);
+                                    if (ImGui.IsItemHovered()) { ImGui.SetTooltip("Enable Japanese -> English translation"); }
                                     ImGui.Checkbox("AutoScroll", ref tab.AutoScroll);
+                                    if (ImGui.IsItemHovered()) { ImGui.SetTooltip("Enable the Chat to scroll automatically on a new message"); }
                                     ImGui.SameLine();
                                     ImGui.Checkbox("Save to file", ref tab.Config[3]);
+                                    if (ImGui.IsItemHovered()) { ImGui.SetTooltip("Write this tab to '\\My Documents\\FFXIV_ChatExtender\\Logs\\<YYYYMMDD>_TAB.txt"); }
 
                                     //TODO: Add a confirm prompt
                                     if (ImGui.Button("Delete Tab"))
@@ -576,6 +650,8 @@ namespace DalamudPlugin
                                         if (EnabledTabs(items) > 1)
                                         { tab.Enabled = false; }
                                     }
+                                    if (ImGui.IsItemHovered()) { ImGui.SetTooltip("Removes Tab"); }
+
 
 
                                     ImGui.Columns(2);
@@ -615,8 +691,11 @@ namespace DalamudPlugin
             Configuration.RTr = rTr.ToString();
             Configuration.LTr = lTr.ToString();
             Configuration.NoMouse = no_mouse;
+            Configuration.NoMouse2 = no_mouse2;
             Configuration.NoMove = no_move;
             Configuration.NoResize = no_resize;
+            Configuration.Space_Hor = space_hor;
+            Configuration.Space_Ver = space_ver;
             this.pluginInterface.SavePluginConfig(Configuration);
         }
 
