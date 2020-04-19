@@ -18,15 +18,16 @@ using Num = System.Numerics;
 
 //TODO
 //Add select+copy?
-//Add spacing config
+
 //Font? - Likely change to gothic
 //Add in handling for quick-translate stuff
 //Add in text finding
-//Add in text higlighting?
+//Add in text higlighting? - draw rectangles?
 //Add in Yandex Key via config
 //Add in support for more than japanese?
 //Add in config for language selections?
 
+//Add spacing config <<DONE>
 //Add write to file <<DONE>>
 //Add locking in place <<DONE>>
 //Add clickthrough <<DONE>>
@@ -41,11 +42,11 @@ namespace DalamudPlugin
     public class ChatExtenderPlugin : IDalamudPlugin
     {
         // Dalamud Plugin
-
+        
         public string Name => "Chat Extender";
         private DalamudPluginInterface pluginInterface;
         private bool chatWindow = false;
-        private bool configWindow = false;
+        private bool configWindow = true;
         //Globals
         public bool injectChat = false;
         public int translator = 1;         //1=Google,2=Yandex
@@ -77,6 +78,8 @@ namespace DalamudPlugin
         
         static string pathString = Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments) + @"\FFXIV_ChatExtender\Logs\";
 
+        public Num.Vector4 timeColour = new Num.Vector4(255, 255, 255, 255);
+
         public Num.Vector4[] logColour =
         {
                 new Num.Vector4(255,255,255,255),new Num.Vector4(255,255,255,255),new Num.Vector4(255,255,255,255),new Num.Vector4(255,255,255,255),new Num.Vector4(255,255,255,255),
@@ -86,7 +89,12 @@ namespace DalamudPlugin
                 new Num.Vector4(255,255,255,255),new Num.Vector4(255,255,255,255),new Num.Vector4(255,255,255,255),new Num.Vector4(255,255,255,255),new Num.Vector4(255,255,255,255),
                 new Num.Vector4(255,255,255,255),new Num.Vector4(255,255,255,255),new Num.Vector4(255,255,255,255),new Num.Vector4(255,255,255,255),new Num.Vector4(255,255,255,255),
                 new Num.Vector4(255,255,255,255),new Num.Vector4(255,255,255,255),new Num.Vector4(255,255,255,255),new Num.Vector4(255,255,255,255),new Num.Vector4(255,255,255,255),
-                new Num.Vector4(255,255,255,255),new Num.Vector4(255,255,255,255)
+                new Num.Vector4(255,255,255,255),new Num.Vector4(255,255,255,255),new Num.Vector4(255,255,255,255),new Num.Vector4(255,255,255,255),new Num.Vector4(255,255,255,255),
+                new Num.Vector4(255,255,255,255),new Num.Vector4(255,255,255,255),new Num.Vector4(255,255,255,255),new Num.Vector4(255,255,255,255),new Num.Vector4(255,255,255,255),
+                new Num.Vector4(255,255,255,255),new Num.Vector4(255,255,255,255),new Num.Vector4(255,255,255,255),new Num.Vector4(255,255,255,255),new Num.Vector4(255,255,255,255),
+                new Num.Vector4(255,255,255,255),new Num.Vector4(255,255,255,255),new Num.Vector4(255,255,255,255),new Num.Vector4(255,255,255,255),new Num.Vector4(255,255,255,255),
+                new Num.Vector4(255,255,255,255),new Num.Vector4(255,255,255,255),new Num.Vector4(255,255,255,255),new Num.Vector4(255,255,255,255),new Num.Vector4(255,255,255,255),
+                new Num.Vector4(255,255,255,255),new Num.Vector4(255,255,255,255),new Num.Vector4(255,255,255,255),new Num.Vector4(255,255,255,255)
         };
 
         public Num.Vector4[] chanColour =
@@ -98,14 +106,29 @@ namespace DalamudPlugin
                 new Num.Vector4(255,255,255,255),new Num.Vector4(255,255,255,255),new Num.Vector4(255,255,255,255),new Num.Vector4(255,255,255,255),new Num.Vector4(255,255,255,255),
                 new Num.Vector4(255,255,255,255),new Num.Vector4(255,255,255,255),new Num.Vector4(255,255,255,255),new Num.Vector4(255,255,255,255),new Num.Vector4(255,255,255,255),
                 new Num.Vector4(255,255,255,255),new Num.Vector4(255,255,255,255),new Num.Vector4(255,255,255,255),new Num.Vector4(255,255,255,255),new Num.Vector4(255,255,255,255),
-                new Num.Vector4(255,255,255,255),new Num.Vector4(255,255,255,255)
+                new Num.Vector4(255,255,255,255),new Num.Vector4(255,255,255,255),new Num.Vector4(255,255,255,255),new Num.Vector4(255,255,255,255),new Num.Vector4(255,255,255,255),
+                new Num.Vector4(255,255,255,255),new Num.Vector4(255,255,255,255),new Num.Vector4(255,255,255,255),new Num.Vector4(255,255,255,255),new Num.Vector4(255,255,255,255),
+                new Num.Vector4(255,255,255,255),new Num.Vector4(255,255,255,255),new Num.Vector4(255,255,255,255),new Num.Vector4(255,255,255,255),new Num.Vector4(255,255,255,255),
+                new Num.Vector4(255,255,255,255),new Num.Vector4(255,255,255,255),new Num.Vector4(255,255,255,255),new Num.Vector4(255,255,255,255),new Num.Vector4(255,255,255,255),
+                new Num.Vector4(255,255,255,255),new Num.Vector4(255,255,255,255),new Num.Vector4(255,255,255,255),new Num.Vector4(255,255,255,255),new Num.Vector4(255,255,255,255),
+                new Num.Vector4(255,255,255,255),new Num.Vector4(255,255,255,255),new Num.Vector4(255,255,255,255),new Num.Vector4(255,255,255,255)
         };
 
         public String[] Channels =
         {
-            "None","Debug","Urgent","Notice","Say","Shout","Tell Outgoing","Tell Incoming","Party","Alliance","Ls 1","Ls 2","Ls 3","Ls 4","Ls 5","Ls 6","Ls 7","Ls 8",
-            "Free Company","Novice Network","Custom Emote","Standard Emote","Yell","Cross Party","PvP Team","Echo","System Error","Gathering System Message","Retainer Sale",
-            "Cross LinkShell 1","Cross LinkShell 2","Cross LinkShell 3","Cross LinkShell 4","Cross LinkShell 5","Cross LinkShell 6","Cross LinkShell 7","Cross LinkShell 8"
+            "None","Debug","Urgent","Notice","Say",
+            "Shout","Tell Outgoing","Tell Incoming","Party","Alliance",
+            "Ls 1","Ls 2","Ls 3","Ls 4","Ls 5",
+            "Ls 6","Ls 7","Ls 8","Free Company","Novice Network",
+            "Custom Emote","Standard Emote","Yell","Cross Party","PvP Team",
+            "Echo","System Error","Gathering System Message","Retainer Sale","Cross LinkShell 1",
+            "Cross LinkShell 2","Cross LinkShell 3","Cross LinkShell 4","Cross LinkShell 5","Cross LinkShell 6",
+            "Cross LinkShell 7","Cross LinkShell 8","System Message","Actions","Damage",
+            "Failed Attacks","Items Used","Healing","Beneficts Start","Detriments Start",
+            "Beneficts End","Detriments End","Alarms","Battle System Message","NPC",
+            "Loot","Progression","Loot Rolls","Synthesis","NPC Announcement",
+            "FC Announcement","FC Login","Recruitment Notice","Sign Marking","Randoms",
+            "Orchestron Track","PVP Team Announcement","PVP Team Login","Message Book Alert"
         };
 
         //Google Translate
@@ -247,6 +270,22 @@ namespace DalamudPlugin
                 space_ver = 0;
             }
 
+            try
+            {
+                if (Configuration.TimeColour.Z > 0)
+                {
+                    timeColour = Configuration.TimeColour;
+                }
+                else
+                {
+                    timeColour = new Num.Vector4(255, 255, 255, 255);
+                }
+            }
+            catch (Exception)
+            {
+                PluginLog.LogError("Failed to Load Time Colour!");
+                timeColour = new Num.Vector4(255, 255, 255, 255);
+            }
 
 
             //TODO: try/catch this?
@@ -282,7 +321,85 @@ namespace DalamudPlugin
                     item.Config = temp;
                 }
             }
+            
+            if (Configuration.Items[0].Logs.Length < Channels.Length)
+            {
+                int l = 0;
+                List<TabBase> templist = new List<TabBase>();
+                foreach (TabBase items in Configuration.Items)
+                {
+                    TabBase temp = new TabBase();
+                    temp.AutoScroll = items.AutoScroll;
+                    temp.Chat = items.Chat;
+                    temp.Config = items.Config;
+                    temp.Enabled = items.Enabled;
+                    temp.Scroll = items.Scroll;
+                    temp.Title = items.Title;
+                    int i = 0;
+                    foreach (bool set in items.Logs)
+                    {
+                        PluginLog.Log(i.ToString());
+                        temp.Logs[i] = set;
+                        i++;
+                    }
+                    PluginLog.Log("bool length:" + temp.Logs.Length.ToString());
+                    templist.Add(temp);
+                    l++;
+                }
 
+                items = templist;
+
+                Num.Vector4[] logColour_temp =
+                {
+                new Num.Vector4(255,255,255,255),new Num.Vector4(255,255,255,255),new Num.Vector4(255,255,255,255),new Num.Vector4(255,255,255,255),new Num.Vector4(255,255,255,255),
+                new Num.Vector4(255,255,255,255),new Num.Vector4(255,255,255,255),new Num.Vector4(255,255,255,255),new Num.Vector4(255,255,255,255),new Num.Vector4(255,255,255,255),
+                new Num.Vector4(255,255,255,255),new Num.Vector4(255,255,255,255),new Num.Vector4(255,255,255,255),new Num.Vector4(255,255,255,255),new Num.Vector4(255,255,255,255),
+                new Num.Vector4(255,255,255,255),new Num.Vector4(255,255,255,255),new Num.Vector4(255,255,255,255),new Num.Vector4(255,255,255,255),new Num.Vector4(255,255,255,255),
+                new Num.Vector4(255,255,255,255),new Num.Vector4(255,255,255,255),new Num.Vector4(255,255,255,255),new Num.Vector4(255,255,255,255),new Num.Vector4(255,255,255,255),
+                new Num.Vector4(255,255,255,255),new Num.Vector4(255,255,255,255),new Num.Vector4(255,255,255,255),new Num.Vector4(255,255,255,255),new Num.Vector4(255,255,255,255),
+                new Num.Vector4(255,255,255,255),new Num.Vector4(255,255,255,255),new Num.Vector4(255,255,255,255),new Num.Vector4(255,255,255,255),new Num.Vector4(255,255,255,255),
+                new Num.Vector4(255,255,255,255),new Num.Vector4(255,255,255,255),new Num.Vector4(255,255,255,255),new Num.Vector4(255,255,255,255),new Num.Vector4(255,255,255,255),
+                new Num.Vector4(255,255,255,255),new Num.Vector4(255,255,255,255),new Num.Vector4(255,255,255,255),new Num.Vector4(255,255,255,255),new Num.Vector4(255,255,255,255),
+                new Num.Vector4(255,255,255,255),new Num.Vector4(255,255,255,255),new Num.Vector4(255,255,255,255),new Num.Vector4(255,255,255,255),new Num.Vector4(255,255,255,255),
+                new Num.Vector4(255,255,255,255),new Num.Vector4(255,255,255,255),new Num.Vector4(255,255,255,255),new Num.Vector4(255,255,255,255),new Num.Vector4(255,255,255,255),
+                new Num.Vector4(255,255,255,255),new Num.Vector4(255,255,255,255),new Num.Vector4(255,255,255,255),new Num.Vector4(255,255,255,255),new Num.Vector4(255,255,255,255),
+                new Num.Vector4(255,255,255,255),new Num.Vector4(255,255,255,255),new Num.Vector4(255,255,255,255),new Num.Vector4(255,255,255,255)
+                };
+
+                int j = 0;
+                foreach(Num.Vector4 vec in logColour)
+                {
+                    logColour_temp[j] = vec;
+                    j++;
+                }
+                logColour = logColour_temp;
+
+                Num.Vector4[] chanColour_temp =
+                {
+                new Num.Vector4(255,255,255,255),new Num.Vector4(255,255,255,255),new Num.Vector4(255,255,255,255),new Num.Vector4(255,255,255,255),new Num.Vector4(255,255,255,255),
+                new Num.Vector4(255,255,255,255),new Num.Vector4(255,255,255,255),new Num.Vector4(255,255,255,255),new Num.Vector4(255,255,255,255),new Num.Vector4(255,255,255,255),
+                new Num.Vector4(255,255,255,255),new Num.Vector4(255,255,255,255),new Num.Vector4(255,255,255,255),new Num.Vector4(255,255,255,255),new Num.Vector4(255,255,255,255),
+                new Num.Vector4(255,255,255,255),new Num.Vector4(255,255,255,255),new Num.Vector4(255,255,255,255),new Num.Vector4(255,255,255,255),new Num.Vector4(255,255,255,255),
+                new Num.Vector4(255,255,255,255),new Num.Vector4(255,255,255,255),new Num.Vector4(255,255,255,255),new Num.Vector4(255,255,255,255),new Num.Vector4(255,255,255,255),
+                new Num.Vector4(255,255,255,255),new Num.Vector4(255,255,255,255),new Num.Vector4(255,255,255,255),new Num.Vector4(255,255,255,255),new Num.Vector4(255,255,255,255),
+                new Num.Vector4(255,255,255,255),new Num.Vector4(255,255,255,255),new Num.Vector4(255,255,255,255),new Num.Vector4(255,255,255,255),new Num.Vector4(255,255,255,255),
+                new Num.Vector4(255,255,255,255),new Num.Vector4(255,255,255,255),new Num.Vector4(255,255,255,255),new Num.Vector4(255,255,255,255),new Num.Vector4(255,255,255,255),
+                new Num.Vector4(255,255,255,255),new Num.Vector4(255,255,255,255),new Num.Vector4(255,255,255,255),new Num.Vector4(255,255,255,255),new Num.Vector4(255,255,255,255),
+                new Num.Vector4(255,255,255,255),new Num.Vector4(255,255,255,255),new Num.Vector4(255,255,255,255),new Num.Vector4(255,255,255,255),new Num.Vector4(255,255,255,255),
+                new Num.Vector4(255,255,255,255),new Num.Vector4(255,255,255,255),new Num.Vector4(255,255,255,255),new Num.Vector4(255,255,255,255),new Num.Vector4(255,255,255,255),
+                new Num.Vector4(255,255,255,255),new Num.Vector4(255,255,255,255),new Num.Vector4(255,255,255,255),new Num.Vector4(255,255,255,255),new Num.Vector4(255,255,255,255),
+                new Num.Vector4(255,255,255,255),new Num.Vector4(255,255,255,255),new Num.Vector4(255,255,255,255),new Num.Vector4(255,255,255,255)
+                };
+
+                int k = 0;
+                foreach (Num.Vector4 vec in chanColour)
+                {
+                    chanColour_temp[k] = vec;
+                    k++;
+                }
+                chanColour = chanColour_temp;
+            }
+            
             SaveConfig();
 
             TransY.Make("https://translate.yandex.net/api/v1.5/tr.json/translate", Configuration.YandexKey);
@@ -397,6 +514,7 @@ namespace DalamudPlugin
             public bool NoResize { get; set; }
             public int Space_Hor { get; set; }
             public int Space_Ver { get; set; }
+            public Num.Vector4 TimeColour { get; set; }
         }
 
         private void ChatUI()
@@ -442,7 +560,7 @@ namespace DalamudPlugin
                                 foreach (ChatText line in tab.Chat)
                                 {
 
-                                    if (tab.Config[0]) { ImGui.TextColored(chanColour[ConvertForArray(line.Channel)], line.Time + " "); ImGui.SameLine(); }
+                                    if (tab.Config[0]) { ImGui.TextColored(timeColour, line.Time + " "); ImGui.SameLine(); }
                                     if (tab.Config[1]) { ImGui.TextColored(chanColour[ConvertForArray(line.Channel)], line.ChannelShort + " "); ImGui.SameLine(); }
                                     if (line.Sender.Length > 0) { ImGui.TextColored(chanColour[ConvertForArray(line.Channel)], line.Sender + ":"); ImGui.SameLine(); }
 
@@ -566,11 +684,15 @@ namespace DalamudPlugin
 
                         if (ImGui.TreeNode("Colours"))
                         {
+                            
                             ImGui.Columns(3);
                             ImGui.Text("Example"); ImGui.NextColumn();
                             ImGui.Text("Channel"); ImGui.NextColumn();
                             ImGui.Text("Text"); ImGui.NextColumn();
-                            for (int i = 0; i < 37; i++)
+                            ImGui.TextColored(timeColour, "[12:00]"); ImGui.NextColumn();
+                            ImGui.ColorEdit4("Time Colour", ref timeColour, ImGuiColorEditFlags.NoInputs | ImGuiColorEditFlags.NoLabel); ImGui.NextColumn();
+                            ImGui.Text(""); ImGui.NextColumn();
+                            for (int i = 0; i < (Channels.Length); i++)
                             {
                                 ImGui.TextColored(chanColour[i], "[" + Channels[i] + "]"); ImGui.SameLine(); ImGui.TextColored(logColour[i], "Text"); ImGui.NextColumn();
                                 ImGui.ColorEdit4(Channels[i] + " Colour1", ref chanColour[i], ImGuiColorEditFlags.NoInputs | ImGuiColorEditFlags.NoLabel); ImGui.NextColumn();
@@ -593,7 +715,13 @@ namespace DalamudPlugin
                             tempTitle = "Title";
                         }
                         if (ImGui.IsItemHovered()) { ImGui.SetTooltip("Add a new Tab to the Chat Extender"); }
-                        ImGui.Text("");
+                        ImGui.Text("X");
+                        /*
+                        ImDrawListPtr ptr = ImGui.GetWindowDrawList();
+                        ptr.AddRectFilled(ImGui.GetItemRectMin(), ImGui.GetItemRectMax(), 0);
+                        */
+                        //TODO: FIX
+                        //ImGui.GetWindowDrawList().AddRectFilled(ImGui.GetItemRectMin(), ImGui.GetItemRectMax(), uintCol(0,0,255,255));
 
                         if (ImGui.Button("Save and Close Config"))
                         {
@@ -658,7 +786,7 @@ namespace DalamudPlugin
                                     ImGui.Text("Enable Channels"); ImGui.NextColumn();
                                     ImGui.Text(""); ImGui.NextColumn();
 
-                                    for (int i = 0; i < 37; i++)
+                                    for (int i = 0; i < (Channels.Length); i++)
                                     {
                                         ImGui.PushStyleColor(ImGuiCol.Text, chanColour[i]);
                                         ImGui.Checkbox("[" + Channels[i] + "]", ref tab.Logs[i]); ImGui.NextColumn();
@@ -680,6 +808,11 @@ namespace DalamudPlugin
             }
         }
 
+        public uint uintCol(int R, int G, int B, int A)
+        {
+            return UInt32.Parse("0x" + R.ToString("X") + G.ToString("X") + B.ToString("X") + A.ToString("X"));
+        }
+
         public void SaveConfig()
         {
             Configuration.Items = CopyAndStripItems(items);
@@ -696,7 +829,13 @@ namespace DalamudPlugin
             Configuration.NoResize = no_resize;
             Configuration.Space_Hor = space_hor;
             Configuration.Space_Ver = space_ver;
+            Configuration.TimeColour = timeColour;
             this.pluginInterface.SavePluginConfig(Configuration);
+        }
+
+        public void HighlightText()
+        {
+            
         }
 
         public void Wrap(String input)
@@ -708,6 +847,7 @@ namespace DalamudPlugin
             {
                 if (ImGui.GetContentRegionAvail().X - 5 - ImGui.CalcTextSize(splits).X < 0) { ImGui.Text(""); }
                 ImGui.Text(splits);
+                
 
                 if (count < (inputArray.Length - 1))
                 {
@@ -728,7 +868,6 @@ namespace DalamudPlugin
             return count;
         }
 
-        //TODO Shrink this with Channels[]
         public int ConvertForArray(string type)
         {
             if (type == "None") return 0;
@@ -768,21 +907,113 @@ namespace DalamudPlugin
             if (type == "CrossLinkShell6") return 34;
             if (type == "CrossLinkShell7") return 35;
             if (type == "CrossLinkShell8") return 36;
-            else return 0;
+            if (type == "SystemMessage") return 37;
+            if (type == "Actions") { return 38; }
+            if (type == "Damage") { return 39; }
+            if (type == "FailedAttacks") { return 40; }
+            if (type == "ItemsUsed") { return 41; }
+            if (type == "Healing") { return 42; }
+            if (type == "BenefictsStart") { return 43; }
+            if (type == "DetrimentsStart") { return 44; }
+            if (type == "BenefictsEnd") { return 45; }
+            if (type == "DetrimentsEnd") { return 46; }
+            if (type == "Alarms") { return 47; }
+            if (type == "BattleSystemMessage") { return 48; }
+            if (type == "NPC") { return 49; }
+            if (type == "Loot") { return 50; }
+            if (type == "Progression") { return 51; }
+            if (type == "LootRolls") { return 52; }
+            if (type == "Synthesis") { return 53; }
+            if (type == "NPCAnnouncement") { return 54; }
+            if (type == "FCAnnouncement") { return 55; }
+            if (type == "FCLogin") { return 56; }
+            if (type == "RecruitmentNotice") { return 57; }
+            if (type == "SignMarking") { return 58; }
+            if (type == "Randoms") { return 59; }
+            if (type == "OrchestronTrack") { return 60; }
+            if (type == "PVPTeamAnnouncement") { return 61; }
+            if (type == "PVPTeamLogin") { return 62; }
+            if (type == "MessageBookAlert") { return 63; }
+
+            else {
+                //PluginLog.Log(type.ToString());
+                type = AddOnChannels(Int32.Parse(type.ToString()) & 127);
+                if (type == "SystemMessage") { return 37; }
+                if (type == "Actions") { return 38; }
+                if (type == "Damage") { return 39; }
+                if (type == "FailedAttacks") { return 40; }
+                if (type == "ItemsUsed") { return 41; }
+                if (type == "Healing") { return 42; }
+                if (type == "BenefictsStart") { return 43; }
+                if (type == "DetrimentsStart") { return 44; }
+                if (type == "BenefictsEnd") { return 45; }
+                if (type == "DetrimentsEnd") { return 46; }
+                if (type == "Alarms") { return 47; }
+                if (type == "BattleSystemMessage") { return 48; }
+                if (type == "NPC") { return 49; }
+                if (type == "Loot") { return 50; }
+                if (type == "Progression") { return 51; }
+                if (type == "LootRolls") { return 52; }
+                if (type == "Synthesis") { return 53; }
+                if (type == "NPCAnnouncement") { return 54; }
+                if (type == "FCAnnouncement") { return 55; }
+                if (type == "FCLogin") { return 56; }
+                if (type == "RecruitmentNotice") { return 57; }
+                if (type == "SignMarking") { return 58; }
+                if (type == "Randoms") { return 59; }
+                if (type == "OrchestronTrack") { return 60; }
+                if (type == "PVPTeamAnnouncement") { return 61; }
+                if (type == "PVPTeamLogin") { return 62; }
+                if (type == "MessageBookAlert") { return 63; }
+
+                else return Int32.Parse(type.ToString()) & 127;
+                }
+        }
+
+        public string AddOnChannels(int channel)
+        {
+            if (channel == 57) return "SystemMessage";
+            if (channel == 43) return "Actions";
+            if (channel == 41) return "Damage";
+            if (channel == 42) return "FailedAttacks";
+            if (channel == 44) return "ItemsUsed";
+            if (channel == 45) return "Healing";
+            if (channel == 46) return "BenefictsStart";
+            if (channel == 47) return "DetrimentsStart";
+            if (channel == 48) return "BenefictsEnd";
+            if (channel == 49) return "DetrimentsEnd";
+            if (channel == 55) return "Alarms";
+            if (channel == 58) return "BattleSystemMessage";
+            if (channel == 61) return "NPC";
+            if (channel == 62) return "Loot";
+            if (channel == 64) return "Progression";
+            if (channel == 65) return "LootRolls";
+            if (channel == 66) return "Synthesis";
+            if (channel == 68) return "NPCAnnouncement";
+            if (channel == 69) return "FCAnnouncement";
+            if (channel == 70) return "FCLogin";
+            if (channel == 72) return "RecruitmentNotice";
+            if (channel == 73) return "SignMarking";
+            if (channel == 74) return "Randoms";
+            if (channel == 76) return "OrchestronTrack";
+            if (channel == 77) return "PVPTeamAnnouncement";
+            if (channel == 78) return "PVPTeamLogin";
+            if (channel == 79) return "MessageBookAlert";
+            else return channel.ToString();
         }
 
         public string GetChannelName(string type)
         {
-            if (type == "None") return "[N]";
-            if (type == "Debug") return "[DB]";
-            if (type == "Urgent") return "[U]";
-            if (type == "Notice") return "[NT]";
-            if (type == "Say") return "[S]";
-            if (type == "Shout") return "[SH]";
-            if (type == "TellOutgoing") return "[TO]";
-            if (type == "TellIncoming") return "[TI]";
-            if (type == "Party") return "[P]";
-            if (type == "Alliance") return "[A]";
+            if (type == "None") return "[NNE]";
+            if (type == "Debug") return "[DBG]";
+            if (type == "Urgent") return "[URG]";
+            if (type == "Notice") return "[NTC]";
+            if (type == "Say") return "[SAY]";
+            if (type == "Shout") return "[SHT]";
+            if (type == "TellOutgoing") return "[TLO]";
+            if (type == "TellIncoming") return "[TLI]";
+            if (type == "Party") return "[PTY]";
+            if (type == "Alliance") return "[ALC]";
             if (type == "Ls1") return "[LS1]";
             if (type == "Ls2") return "[LS2]";
             if (type == "Ls3") return "[LS3]";
@@ -791,18 +1022,18 @@ namespace DalamudPlugin
             if (type == "Ls6") return "[LS6]";
             if (type == "Ls7") return "[LS7]";
             if (type == "Ls8") return "[LS8]";
-            if (type == "FreeCompany") return "[FC]";
-            if (type == "NoviceNetwork") return "[NN]";
-            if (type == "CustomEmote") return "[EC]";
-            if (type == "StandardEmote") return "[ES]";
-            if (type == "Yell") return "[Y]";
-            if (type == "CrossParty") return "[CP]";
+            if (type == "FreeCompany") return "[FRC]";
+            if (type == "NoviceNetwork") return "[NNW]";
+            if (type == "CustomEmote") return "[EMC]";
+            if (type == "StandardEmote") return "[EMS]";
+            if (type == "Yell") return "[YLL]";
+            if (type == "CrossParty") return "[CPT]";
             if (type == "PvPTeam") return "[PVP]";
             if (type == "CrossLinkShell1") return "[CW1]";
-            if (type == "Echo") return "[E]";
-            if (type == "SystemError") return "[SE]";
-            if (type == "GatheringSystemMessage") return "[G]";
-            if (type == "RetainerSale") return "[RS]";
+            if (type == "Echo") return "[ECH]";
+            if (type == "SystemError") return "[SER]";
+            if (type == "GatheringSystemMessage") return "[GSM]";
+            if (type == "RetainerSale") return "[RSL]";
             if (type == "CrossLinkShell2") return "[CW2]";
             if (type == "CrossLinkShell3") return "[CW3]";
             if (type == "CrossLinkShell4") return "[CW4]";
@@ -810,7 +1041,68 @@ namespace DalamudPlugin
             if (type == "CrossLinkShell6") return "[CW6]";
             if (type == "CrossLinkShell7") return "[CW7]";
             if (type == "CrossLinkShell8") return "[CW8]";
-            else return "[?]";
+            if (type == "SystemMessage") return "[SMG]";
+            if (type == "Actions") return "[UAC]";
+            if (type == "Damage") return "[DAM]";
+            if (type == "FailedAttacks") return "[FAT]";
+            if (type == "ItemsUsed") return "[ISU]";
+            if (type == "Healing") return "[HLG]";
+            if (type == "BenefictsStart") return "[BFS]";
+            if (type == "DetrimentsStart") return "[DTS]";
+            if (type == "BenefictsEnd") return "[BFE]";
+            if (type == "DetrimentsEnd") return "[DTE]";
+            if (type == "Alarms") return "[ALM]";
+            if (type == "BattleSystemMessage") return "[BSM]";
+            if (type == "NPC") return "[NPC]";
+            if (type == "Loot") return "[LOT]";
+            if (type == "Progression") return "[PGR]";
+            if (type == "LootRolls") return "[LTR]";
+            if (type == "Synthesis") return "[SYN]";
+            if (type == "NPCAnnouncement") return "[NPA]";
+            if (type == "FCAnnouncement") return "[FCA]";
+            if (type == "FCLogin") return "[FCL]";
+            if (type == "RecruitmentNotice") return "[RNT]";
+            if (type == "SignMarking") return "[SMK]";
+            if (type == "Randoms") return "[RND]";
+            if (type == "OrchestronTrack") return "[ORC]";
+            if (type == "PVPTeamAnnouncement") return "[PTA]";
+            if (type == "PVPTeamLogin") return "[PTL]";
+            if (type == "MessageBookAlert") return "[MBA]";
+
+
+            else
+            {
+                type = AddOnChannels(Int32.Parse(type.ToString()) & 127);
+                if (type == "SystemMessage") return "[SMG]";
+                if (type == "Actions") return "[ACT]";
+                if (type == "Damage") return "[DAM]";
+                if (type == "FailedAttacks") return "[FAT]";
+                if (type == "ItemsUsed") return "[ISU]";
+                if (type == "Healing") return "[HLG]";
+                if (type == "BenefictsStart") return "[BFS]";
+                if (type == "DetrimentsStart") return "[DTS]";
+                if (type == "BenefictsEnd") return "[BFE]";
+                if (type == "DetrimentsEnd") return "[DTE]";
+                if (type == "Alarms") return "[ALM]";
+                if (type == "BattleSystemMessage") return "[BSM]";
+                if (type == "NPC") return "[NPC]";
+                if (type == "Loot") return "[LOT]";
+                if (type == "Progression") return "[PGR]";
+                if (type == "LootRolls") return "[LTR]";
+                if (type == "Synthesis") return "[SYN]";
+                if (type == "NPCAnnouncement") return "[NPA]";
+                if (type == "FCAnnouncement") return "[FCA]";
+                if (type == "FCLogin") return "[FCL]";
+                if (type == "RecruitmentNotice") return "[RNT]";
+                if (type == "SignMarking") return "[SMK]";
+                if (type == "Randoms") return "[RND]";
+                if (type == "OrchestronTrack") return "[ORC]";
+                if (type == "PVPTeamAnnouncement") return "[PTA]";
+                if (type == "PVPTeamLogin") return "[PTL]";
+                if (type == "MessageBookAlert") return "[MBA]";
+
+                else return "[?]";
+            }
         }
 
         private void Chat_OnChatMessage(XivChatType type, uint senderId, ref SeString sender, ref SeString message, ref bool isHandled)
@@ -821,111 +1113,123 @@ namespace DalamudPlugin
 
             foreach (var tab in items)
             {
-
-                if (tab.Logs[ConvertForArray(type.ToString())])
+                int chan = ConvertForArray(type.ToString());
+                if (chan < Channels.Length)
                 {
-                    ChatText tmp = new ChatText();
-
-                    tmp.Time = GetTime();
-                    tmp.ChannelShort = GetChannelName(type.ToString());
-                    tmp.Channel = type.ToString();
-                    tmp.Sender = senderName;
-                    tmp.ChannelColour = ConvertForArray(type.ToString());
-                    List<TextTypes> rawtext = new List<TextTypes>();
-
-                    int replace = 0;
-                    Payload payloader = null;
-                    PayloadType payloadType = PayloadType.RawText;
-                    foreach (var payload in payloads)
+                    if (tab.Logs[chan])
                     {
-                        //if (payload.Type == PayloadType.AutoTranslateText) { texttype = 0; }
-                        //if (payload.Type == PayloadType.Item) { texttype = 1; }
-                        if (payload.Type == PayloadType.MapLink)
+                        ChatText tmp = new ChatText();
+
+                        tmp.Time = GetTime();
+                        tmp.ChannelShort = GetChannelName(type.ToString());
+                        try
                         {
-                            replace = 2;
-                            payloadType = PayloadType.MapLink;
-                            payloader = payload;
+                            tmp.Channel = Channels[chan].Trim().Replace(" ", "");
                         }
-                        //if (payload.Type == PayloadType.Player) { texttype = 3; }
-                        //if (payload.Type == PayloadType.RawText) { texttype = 4; }
-                        //if (payload.Type == PayloadType.Status) { texttype = 5; }
-                        //if (payload.Type == PayloadType.UIForeground) { texttype = 6; }
-                        //if (payload.Type == PayloadType.UIGlow) { texttype = 7; }
-
-                        if (payload.Type == PayloadType.RawText)
+                        catch (Exception)
                         {
-                            TextTypes wrangler = new TextTypes();
-                            wrangler.Text = payload.ToString().Split(new[] { ' ' }, 4)[3];
+                            tmp.Channel = chan.ToString();
+                        }
 
-                            if (replace == 1)
+                        tmp.Sender = senderName;
+                        tmp.ChannelColour = ConvertForArray(type.ToString());
+                        List<TextTypes> rawtext = new List<TextTypes>();
+
+                        int replace = 0;
+                        Payload payloader = null;
+                        PayloadType payloadType = PayloadType.RawText;
+                        foreach (var payload in payloads)
+                        {
+                            //if (payload.Type == PayloadType.AutoTranslateText) { texttype = 0; }
+                            //if (payload.Type == PayloadType.Item) { texttype = 1; }
+                            if (payload.Type == PayloadType.MapLink)
                             {
-                                if (payloadType == PayloadType.MapLink)
+                                replace = 2;
+                                payloadType = PayloadType.MapLink;
+                                payloader = payload;
+                            }
+                            //if (payload.Type == PayloadType.Player) { texttype = 3; }
+                            //if (payload.Type == PayloadType.RawText) { texttype = 4; }
+                            //if (payload.Type == PayloadType.Status) { texttype = 5; }
+                            //if (payload.Type == PayloadType.UIForeground) { texttype = 6; }
+                            //if (payload.Type == PayloadType.UIGlow) { texttype = 7; }
+
+                            if (payload.Type == PayloadType.RawText)
+                            {
+                                TextTypes wrangler = new TextTypes();
+                                wrangler.Text = payload.ToString().Split(new[] { ' ' }, 4)[3];
+
+                                if (replace == 1)
                                 {
-                                    rawtext.RemoveAt(rawtext.Count - 1);
-                                    wrangler.Payload = payload;
+                                    if (payloadType == PayloadType.MapLink)
+                                    {
+                                        rawtext.RemoveAt(rawtext.Count - 1);
+                                        wrangler.Payload = payload;
+                                    }
+                                }
+
+                                if (replace == 0)
+                                {
+                                    payloadType = PayloadType.RawText;
+                                }
+
+                                wrangler.Type = payloadType;
+                                rawtext.Add(wrangler);
+
+                                if (replace > 0)
+                                {
+                                    replace--;
                                 }
                             }
 
-                            if (replace == 0)
+                            //PluginLog.Log(payload.ToString());
+
+                        }
+
+                        tmp.Text = rawtext;
+
+                        String messageString = message.TextValue;
+                        String predictedLanguage = Lang(messageString);
+
+                        if (predictedLanguage == language)
+                        {
+                            Task.Run(() => Tran(type, messageString, senderName));
+                        }
+
+                        tab.Chat.Add(tmp);
+
+                        if (tab.Chat.Count > 256)
+                        {
+                            tab.Chat.RemoveAt(0);
+                        }
+
+                        if (tab.Config[3])
+                        {
+                            //Writing to file
+                            string filename = GetDate() + "_" + tab.Title + ".txt";
+                            if (!System.IO.Directory.Exists(pathString))
                             {
-                                payloadType = PayloadType.RawText;
+                                System.IO.Directory.CreateDirectory(pathString);
                             }
 
-                            wrangler.Type = payloadType;
-                            rawtext.Add(wrangler);
-
-                            if (replace > 0)
+                            if (!System.IO.File.Exists(pathString + filename))
                             {
-                                replace--;
+                                System.IO.File.WriteAllText(pathString + filename, tab.Title + "\n");
+                            }
+
+                            using (System.IO.StreamWriter file = new System.IO.StreamWriter(pathString + filename, true))
+                            {
+                                file.WriteLine(tmp.Time + "[" + tmp.Channel + "]" + "<" + tmp.Sender + ">:" + TextTypesToString(rawtext));
                             }
                         }
 
-                        PluginLog.Log(payload.ToString());
-
-                    }
-
-                    tmp.Text = rawtext;
-
-                    String messageString = message.TextValue;
-                    String predictedLanguage = Lang(messageString);
-
-                    if (predictedLanguage == language)
-                    {
-                        Task.Run(() => Tran(type, messageString, senderName));
-                    }
-
-                    tab.Chat.Add(tmp);
-
-                    if (tab.Chat.Count > 256)
-                    {
-                        tab.Chat.RemoveAt(0);
-                    }
-
-                    if (tab.Config[3])
-                    {
-                        //Writing to file
-                        string filename = GetDate() + "_" + tab.Title + ".txt";
-                        if (!System.IO.Directory.Exists(pathString))
+                        if (tab.AutoScroll == true)
                         {
-                            System.IO.Directory.CreateDirectory(pathString);
+                            tab.Scroll = true;
                         }
-
-                        if (!System.IO.File.Exists(pathString + filename))
-                        {
-                            System.IO.File.WriteAllText(pathString + filename, tab.Title + "\n");
-                        }
-
-                        using (System.IO.StreamWriter file = new System.IO.StreamWriter(pathString + filename, true))
-                        {
-                            file.WriteLine(tmp.Time + "[" + tmp.Channel + "]" + "<" + tmp.Sender + ">:" + TextTypesToString(rawtext));
-                        }
-                    }
-
-                    if (tab.AutoScroll == true)
-                    {
-                        tab.Scroll = true;
                     }
                 }
+                else PluginLog.Log("[" + chan.ToString() + "] " + message.TextValue);
 
             }
         }
@@ -1082,7 +1386,13 @@ namespace DalamudPlugin
                 false, false, false, false, false,
                 false, false, false, false, false,
                 false, false, false, false, false,
-                false, false, false };
+                false, false, false, false, false,
+                false, false, false, false, false,
+                false, false, false, false, false,
+                false, false, false, false, false,
+                false, false, false, false, false,
+                false, false, false, false
+            };
 
             // 0 = Timestamp
             // 1 = Channel
