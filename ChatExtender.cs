@@ -18,14 +18,19 @@ using Num = System.Numerics;
 
 //TODO
 //Add select+copy?
-
 //Font? - Likely change to gothic
 //Add in handling for quick-translate stuff
 //Add in text finding
-//Add in text higlighting? - draw rectangles?
+
 //Add in Yandex Key via config
 //Add in support for more than japanese?
 //Add in config for language selections?
+
+//Add in text higlighting? - draw rectangles? <<DONE>>
+//Add Time colour config <<Done>>
+//Add Tab Re-ordering <<Done>>
+//Add in more cleanup of config <<Done>>
+//Add Handling all Channels <<Done>>
 
 //Add spacing config <<DONE>
 //Add write to file <<DONE>>
@@ -56,6 +61,7 @@ namespace DalamudPlugin
         public List<TabBase> itemsTemp = new List<TabBase>();
         public uint bufSize = 24;
         public string tempTitle = "Title";
+        public string tempHigh = "words,to,highlight";
         public float alpha = 0.2f;
 
         public string lTr = "<<";
@@ -72,6 +78,8 @@ namespace DalamudPlugin
         static bool no_mouse = false;
         static bool no_mouse2 = false;
         static bool flickback = false;
+
+        public Highlighter high = new Highlighter();
 
         static int space_hor = 4;
         static int space_ver = 0;
@@ -245,6 +253,27 @@ namespace DalamudPlugin
                 PluginLog.LogError("Failed to Load NoMouse Config!");
                 no_mouse = false;
             }
+
+            try
+            { high = Configuration.High; }
+            catch (Exception)
+            {
+                PluginLog.LogError("Failed to Load Highlighter");
+                high = new Highlighter();
+            }
+            try
+            {
+                if (high.highlights.Length < 1)
+                {
+                    high = new Highlighter();
+                }
+            }
+            catch (Exception)
+            {
+                PluginLog.LogError("Failed to Load Highlighter");
+                high = new Highlighter();
+            }
+
 
             try
             { no_mouse = Configuration.NoMouse2; }
@@ -425,15 +454,39 @@ namespace DalamudPlugin
             List<TabBase> clone = new List<TabBase>();
             foreach(TabBase tabs in items)
             {
-                TabBase babyClone = new TabBase();
-                babyClone.AutoScroll = tabs.AutoScroll;
-                babyClone.Chat = new List<ChatText>();
-                babyClone.Config = tabs.Config.ToArray();
-                babyClone.Enabled = tabs.Enabled;
-                babyClone.Logs = tabs.Logs.ToArray();
-                babyClone.Scroll = tabs.Scroll;
-                babyClone.Title = tabs.Title.ToString();
-                clone.Add(babyClone);
+                if (tabs.Enabled)
+                {
+                    TabBase babyClone = new TabBase();
+                    babyClone.AutoScroll = tabs.AutoScroll;
+                    babyClone.Chat = new List<ChatText>();
+                    babyClone.Config = tabs.Config.ToArray();
+                    babyClone.Enabled = tabs.Enabled;
+                    babyClone.Logs = tabs.Logs.ToArray();
+                    babyClone.Scroll = tabs.Scroll;
+                    babyClone.Title = tabs.Title.ToString();
+                    clone.Add(babyClone);
+                }
+            }
+            return clone;
+        }
+
+        private List<TabBase> CopyItems(List<TabBase> items)
+        {
+            List<TabBase> clone = new List<TabBase>();
+            foreach (TabBase tabs in items)
+            {
+                if (tabs.Enabled)
+                {
+                    TabBase babyClone = new TabBase();
+                    babyClone.AutoScroll = tabs.AutoScroll;
+                    babyClone.Chat = tabs.Chat;
+                    babyClone.Config = tabs.Config.ToArray();
+                    babyClone.Enabled = tabs.Enabled;
+                    babyClone.Logs = tabs.Logs.ToArray();
+                    babyClone.Scroll = tabs.Scroll;
+                    babyClone.Title = tabs.Title.ToString();
+                    clone.Add(babyClone);
+                }
             }
             return clone;
         }
@@ -515,6 +568,7 @@ namespace DalamudPlugin
             public int Space_Hor { get; set; }
             public int Space_Ver { get; set; }
             public Num.Vector4 TimeColour { get; set; }
+            public Highlighter High { get; set; }
         }
 
         private void ChatUI()
@@ -682,6 +736,47 @@ namespace DalamudPlugin
                         if (ImGui.IsItemHovered()) { ImGui.SetTooltip("Alter the Alpha of the Chat Extender"); }
                         ImGui.Text("");
 
+                        if (ImGui.TreeNode("Tab Order"))
+                        {
+
+                            ImGui.Columns(3);
+                            ImGui.Text("Tab"); ImGui.NextColumn();
+                            ImGui.Text(""); ImGui.NextColumn();
+                            ImGui.Text(""); ImGui.NextColumn();
+
+                            List<TabBase> temp_clone = new List<TabBase>();
+                            temp_clone = CopyItems(items);
+                            for (int i = 0; i < (items.Count); i++)
+                            {
+                                ImGui.Text(items[i].Title); ImGui.NextColumn();
+                                if (i > 0)
+                                {
+                                    if (ImGui.Button("^##"+i.ToString()))
+                                    {
+                                        TabBase mover = temp_clone[i];
+                                        temp_clone.RemoveAt(i);
+                                        temp_clone.Insert(i - 1, mover);
+                                    }
+                                }
+                                ImGui.NextColumn();
+                                if (i < items.Count-1)
+                                {
+                                    if (ImGui.Button("v##" + i.ToString()))
+                                    {
+                                        TabBase mover = temp_clone[i];
+                                        temp_clone.RemoveAt(i);
+                                        temp_clone.Insert(i + 1, mover);
+                                    }
+                                }
+                                ImGui.NextColumn();
+                            }
+                            ImGui.Columns(1);
+                            items = CopyItems(temp_clone);
+                            ImGui.TreePop();
+
+                        }
+
+
                         if (ImGui.TreeNode("Colours"))
                         {
                             
@@ -715,13 +810,24 @@ namespace DalamudPlugin
                             tempTitle = "Title";
                         }
                         if (ImGui.IsItemHovered()) { ImGui.SetTooltip("Add a new Tab to the Chat Extender"); }
-                        ImGui.Text("X");
-                        /*
-                        ImDrawListPtr ptr = ImGui.GetWindowDrawList();
-                        ptr.AddRectFilled(ImGui.GetItemRectMin(), ImGui.GetItemRectMax(), 0);
-                        */
-                        //TODO: FIX
-                        //ImGui.GetWindowDrawList().AddRectFilled(ImGui.GetItemRectMin(), ImGui.GetItemRectMax(), uintCol(0,0,255,255));
+
+                        ImGui.Text("");
+                        ImGui.Text("Highlight Example");
+                        HighlightText();
+                        ImGui.InputText("##HighlightText", ref tempHigh, 999); if (ImGui.IsItemHovered()) { ImGui.SetTooltip("Will highlight EXACT matches only. Seperate words with [,]."); }
+                        ImGui.SameLine();
+                        if (ImGui.Button("Apply"))
+                        {
+                            high.highlights = tempHigh.Split(',');
+                        }
+                        ImGui.Columns(4);
+                        ImGui.SliderInt("Alpha", ref high.htA, 0, 255); ImGui.NextColumn();
+                        ImGui.SliderInt("Blue",  ref high.htB, 0, 255); ImGui.NextColumn();
+                        ImGui.SliderInt("Green", ref high.htG, 0, 255); ImGui.NextColumn();
+                        ImGui.SliderInt("Red",   ref high.htR, 0, 255); ImGui.NextColumn();
+                        ImGui.Columns(1);
+                        ImGui.Text("");
+
 
                         if (ImGui.Button("Save and Close Config"))
                         {
@@ -808,9 +914,11 @@ namespace DalamudPlugin
             }
         }
 
-        public uint uintCol(int R, int G, int B, int A)
+        public uint UintCol(int R, int G, int B, int A)
         {
-            return UInt32.Parse("0x" + R.ToString("X") + G.ToString("X") + B.ToString("X") + A.ToString("X"));
+            //PluginLog.Log();
+            return Convert.ToUInt32("0x" + R.ToString("X2") + G.ToString("X2") + B.ToString("X2") + A.ToString("X2"), 16);
+            //return UInt32.Parse("0x" + R.ToString("X2") + G.ToString("X2") + B.ToString("X2") + A.ToString("X2"));
         }
 
         public void SaveConfig()
@@ -830,12 +938,13 @@ namespace DalamudPlugin
             Configuration.Space_Hor = space_hor;
             Configuration.Space_Ver = space_ver;
             Configuration.TimeColour = timeColour;
+            Configuration.High = high;
             this.pluginInterface.SavePluginConfig(Configuration);
         }
 
         public void HighlightText()
         {
-            
+            ImGui.GetWindowDrawList().AddRectFilled(ImGui.GetItemRectMin(), ImGui.GetItemRectMax(), UintCol(high.htA, high.htB, high.htG, high.htR), 2.0f);
         }
 
         public void Wrap(String input)
@@ -846,8 +955,12 @@ namespace DalamudPlugin
             foreach (String splits in inputArray)
             {
                 if (ImGui.GetContentRegionAvail().X - 5 - ImGui.CalcTextSize(splits).X < 0) { ImGui.Text(""); }
+
                 ImGui.Text(splits);
-                
+                foreach (String word in high.highlights)
+                {
+                    if(splits == word) HighlightText();
+                }
 
                 if (count < (inputArray.Length - 1))
                 {
@@ -1409,6 +1522,15 @@ namespace DalamudPlugin
             public string Text;
             public PayloadType Type;
             public Payload Payload;
+        }
+
+        public class Highlighter
+        {
+            public string[] highlights = {""};
+            public int htA = 120;
+            public int htB = 255;
+            public int htG = 255;
+            public int htR = 255;
         }
 
         bool CheckDupe(List<TabBase> items, string title)
