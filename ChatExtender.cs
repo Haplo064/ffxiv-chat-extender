@@ -353,36 +353,37 @@ namespace DalamudPlugin
                     item.Config = temp;
                 }
             }
-            
-            if (Configuration.Items[0].Logs.Length < Channels.Length)
+            try
             {
-                int l = 0;
-                List<TabBase> templist = new List<TabBase>();
-                foreach (TabBase items in Configuration.Items)
+                if (Configuration.Items[0].Logs.Length < Channels.Length)
                 {
-                    TabBase temp = new TabBase();
-                    temp.AutoScroll = items.AutoScroll;
-                    temp.Chat = items.Chat;
-                    temp.Config = items.Config;
-                    temp.Enabled = items.Enabled;
-                    temp.Scroll = items.Scroll;
-                    temp.Title = items.Title;
-                    int i = 0;
-                    foreach (bool set in items.Logs)
+                    int l = 0;
+                    List<TabBase> templist = new List<TabBase>();
+                    foreach (TabBase items in Configuration.Items)
                     {
-                        //PluginLog.Log(i.ToString());
-                        temp.Logs[i] = set;
-                        i++;
+                        TabBase temp = new TabBase();
+                        temp.AutoScroll = items.AutoScroll;
+                        temp.Chat = items.Chat;
+                        temp.Config = items.Config;
+                        temp.Enabled = items.Enabled;
+                        temp.Scroll = items.Scroll;
+                        temp.Title = items.Title;
+                        int i = 0;
+                        foreach (bool set in items.Logs)
+                        {
+                            //PluginLog.Log(i.ToString());
+                            temp.Logs[i] = set;
+                            i++;
+                        }
+                        //PluginLog.Log("bool length:" + temp.Logs.Length.ToString());
+                        templist.Add(temp);
+                        l++;
                     }
-                    //PluginLog.Log("bool length:" + temp.Logs.Length.ToString());
-                    templist.Add(temp);
-                    l++;
-                }
 
-                items = templist;
+                    items = templist;
 
-                Num.Vector4[] logColour_temp =
-                {
+                    Num.Vector4[] logColour_temp =
+                    {
                 new Num.Vector4(255,255,255,255),new Num.Vector4(255,255,255,255),new Num.Vector4(255,255,255,255),new Num.Vector4(255,255,255,255),new Num.Vector4(255,255,255,255),
                 new Num.Vector4(255,255,255,255),new Num.Vector4(255,255,255,255),new Num.Vector4(255,255,255,255),new Num.Vector4(255,255,255,255),new Num.Vector4(255,255,255,255),
                 new Num.Vector4(255,255,255,255),new Num.Vector4(255,255,255,255),new Num.Vector4(255,255,255,255),new Num.Vector4(255,255,255,255),new Num.Vector4(255,255,255,255),
@@ -398,16 +399,16 @@ namespace DalamudPlugin
                 new Num.Vector4(255,255,255,255),new Num.Vector4(255,255,255,255),new Num.Vector4(255,255,255,255),new Num.Vector4(255,255,255,255)
                 };
 
-                int j = 0;
-                foreach(Num.Vector4 vec in logColour)
-                {
-                    logColour_temp[j] = vec;
-                    j++;
-                }
-                logColour = logColour_temp;
+                    int j = 0;
+                    foreach (Num.Vector4 vec in logColour)
+                    {
+                        logColour_temp[j] = vec;
+                        j++;
+                    }
+                    logColour = logColour_temp;
 
-                Num.Vector4[] chanColour_temp =
-                {
+                    Num.Vector4[] chanColour_temp =
+                    {
                 new Num.Vector4(255,255,255,255),new Num.Vector4(255,255,255,255),new Num.Vector4(255,255,255,255),new Num.Vector4(255,255,255,255),new Num.Vector4(255,255,255,255),
                 new Num.Vector4(255,255,255,255),new Num.Vector4(255,255,255,255),new Num.Vector4(255,255,255,255),new Num.Vector4(255,255,255,255),new Num.Vector4(255,255,255,255),
                 new Num.Vector4(255,255,255,255),new Num.Vector4(255,255,255,255),new Num.Vector4(255,255,255,255),new Num.Vector4(255,255,255,255),new Num.Vector4(255,255,255,255),
@@ -423,13 +424,18 @@ namespace DalamudPlugin
                 new Num.Vector4(255,255,255,255),new Num.Vector4(255,255,255,255),new Num.Vector4(255,255,255,255),new Num.Vector4(255,255,255,255)
                 };
 
-                int k = 0;
-                foreach (Num.Vector4 vec in chanColour)
-                {
-                    chanColour_temp[k] = vec;
-                    k++;
+                    int k = 0;
+                    foreach (Num.Vector4 vec in chanColour)
+                    {
+                        chanColour_temp[k] = vec;
+                        k++;
+                    }
+                    chanColour = chanColour_temp;
                 }
-                chanColour = chanColour_temp;
+            }
+            catch (Exception)
+            {
+                PluginLog.Log("Fresh install, no log to fix!");
             }
             
             SaveConfig();
