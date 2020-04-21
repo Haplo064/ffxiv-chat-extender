@@ -17,21 +17,24 @@ using Dalamud.Configuration;
 using Num = System.Numerics;
 
 //TODO
+
+//Rename short channel names @Hikarin
+//Add in tab indication of new message
 //Add select+copy?
 //Font? - Likely change to gothic
 //Add in handling for quick-translate stuff
-//Add in text finding
+//Add in text finding <<WIP>>
 
 //Add in Yandex Key via config
 //Add in support for more than japanese?
 //Add in config for language selections?
 
+//Add in MapLink handling <<Done>>
 //Add in text higlighting? - draw rectangles? <<DONE>>
 //Add Time colour config <<Done>>
 //Add Tab Re-ordering <<Done>>
 //Add in more cleanup of config <<Done>>
 //Add Handling all Channels <<Done>>
-
 //Add spacing config <<DONE>
 //Add write to file <<DONE>>
 //Add locking in place <<DONE>>
@@ -51,7 +54,7 @@ namespace DalamudPlugin
         public string Name => "Chat Extender";
         private DalamudPluginInterface pluginInterface;
         private bool chatWindow = false;
-        private bool configWindow = true;
+        private bool configWindow = false;
         //Globals
         public bool injectChat = false;
         public int translator = 1;         //1=Google,2=Yandex
@@ -367,11 +370,11 @@ namespace DalamudPlugin
                     int i = 0;
                     foreach (bool set in items.Logs)
                     {
-                        PluginLog.Log(i.ToString());
+                        //PluginLog.Log(i.ToString());
                         temp.Logs[i] = set;
                         i++;
                     }
-                    PluginLog.Log("bool length:" + temp.Logs.Length.ToString());
+                    //PluginLog.Log("bool length:" + temp.Logs.Length.ToString());
                     templist.Add(temp);
                     l++;
                 }
@@ -633,8 +636,7 @@ namespace DalamudPlugin
                                             if (ImGui.GetContentRegionAvail().X - 5 - ImGui.CalcTextSize(textTypes.Text).X < 0) { ImGui.Text(""); }
                                             if (ImGui.SmallButton(textTypes.Text))
                                             {
-                                                //MAP HANDLING WILL GO HERE
-                                                PluginLog.Log("Clicked on " + textTypes.Payload.ToString());
+                                                this.pluginInterface.Framework.Gui.OpenMapWithMapLink((Dalamud.Game.Chat.SeStringHandling.Payloads.MapLinkPayload)textTypes.Payload);
                                             }
                                         }
 
@@ -1277,7 +1279,7 @@ namespace DalamudPlugin
                                     if (payloadType == PayloadType.MapLink)
                                     {
                                         rawtext.RemoveAt(rawtext.Count - 1);
-                                        wrangler.Payload = payload;
+                                        wrangler.Payload = payloader;
                                     }
                                 }
 
