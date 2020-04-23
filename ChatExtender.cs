@@ -17,32 +17,7 @@ using Dalamud.Configuration;
 using Num = System.Numerics;
 
 //TODO
-
-//Rename short channel names @Hikarin
-//Add in tab indication of new message
-//Add select+copy?
-//Font? - Likely change to gothic
-//Add in handling for quick-translate stuff
-//Add in text finding <<WIP>>
-
-//Add in Yandex Key via config
-//Add in support for more than japanese?
-//Add in config for language selections?
-
-//Add in MapLink handling <<Done>>
-//Add in text higlighting? - draw rectangles? <<DONE>>
-//Add Time colour config <<Done>>
-//Add Tab Re-ordering <<Done>>
-//Add in more cleanup of config <<Done>>
-//Add Handling all Channels <<Done>>
-//Add spacing config <<DONE>
-//Add write to file <<DONE>>
-//Add locking in place <<DONE>>
-//Add clickthrough <<DONE>>
-//Add customizable translate surrounds <<DONE>>
-//Add colour configs <<DONE>>
-//Fix up missing chat text <<DONE>>
-//Add Custom wrapper <<DONE>>
+//https://github.com/Haplo064/ffxiv-chat-extender/projects/2
 
 
 namespace DalamudPlugin
@@ -81,6 +56,13 @@ namespace DalamudPlugin
         static bool no_mouse = false;
         static bool no_mouse2 = false;
         static bool flickback = false;
+        static uint tab_ind;
+        static uint tab_norm;
+        static uint tab_sel;
+        static uint tab_ind_text;
+        static uint tab_norm_text;
+        static uint tab_sel_text;
+        //public ImFontPtr font = ImGui.GetIO().Fonts.AddFontFromFileTTF("FFXIV_Chat.ttf", 20);
 
         public Highlighter high = new Highlighter();
 
@@ -128,19 +110,37 @@ namespace DalamudPlugin
         public String[] Channels =
         {
             "None","Debug","Urgent","Notice","Say",
-            "Shout","Tell Outgoing","Tell Incoming","Party","Alliance",
-            "Ls 1","Ls 2","Ls 3","Ls 4","Ls 5",
-            "Ls 6","Ls 7","Ls 8","Free Company","Novice Network",
-            "Custom Emote","Standard Emote","Yell","Cross Party","PvP Team",
-            "Echo","System Error","Gathering System Message","Retainer Sale","Cross LinkShell 1",
-            "Cross LinkShell 2","Cross LinkShell 3","Cross LinkShell 4","Cross LinkShell 5","Cross LinkShell 6",
-            "Cross LinkShell 7","Cross LinkShell 8","System Message","Actions","Damage",
-            "Failed Attacks","Items Used","Healing","Beneficts Start","Detriments Start",
-            "Beneficts End","Detriments End","Alarms","Battle System Message","NPC",
-            "Loot","Progression","Loot Rolls","Synthesis","NPC Announcement",
-            "FC Announcement","FC Login","Recruitment Notice","Sign Marking","Randoms",
-            "Orchestron Track","PVP Team Announcement","PVP Team Login","Message Book Alert"
+            "Shout","TellOutgoing","TellIncoming","Party","Alliance",
+            "Ls1","Ls2","Ls3","Ls4","Ls5",
+            "Ls6","Ls7","Ls8","FreeCompany","NoviceNetwork",
+            "CustomEmote","StandardEmote","Yell","CrossParty","PvPTeam",
+            "Echo","SystemError","GatheringSystemMessage","RetainerSale","CrossLinkShell1",
+            "CrossLinkShell2","CrossLinkShell3","CrossLinkShell4","CrossLinkShell5","CrossLinkShell6",
+            "CrossLinkShell7","CrossLinkShell8","SystemMessage","Actions","Damage",
+            "FailedAttacks","ItemsUsed","Healing","BenefictsStart","DetrimentsStart",
+            "BenefictsEnd","DetrimentsEnd","Alarms","BattleSystemMessage","NPC",
+            "Loot","Progression","Loot Rolls","Synthesis","NPCAnnouncement",
+            "FCAnnouncement","FCLogin","RecruitmentNotice","SignMarking","Randoms",
+            "OrchestronTrack","PVPTeamAnnouncement","PVPTeamLogin","MessageBookAlert"
         };
+
+        public String[] Chan =
+            {
+                "[NNE]","[DBG]","[URG]","[NTC]","[SAY]",
+                "[SHT]","[TLO]","[TLI]","[PTY]","[ALC]",
+                "[LS1]","[LS2]","[LS3]","[LS4]","[LS5]",
+                "[LS6]","[LS7]","[LS8]","[FRC]","[NNW]",
+                "[EMC]","[EMS]","[YLL]","[CPT]","[PVP]",
+                "[ECH]","[SER]","[GSM]","[RSL]","[CW1]",
+                "[CW2]","[CW3]","[CW4]","[CW5]","[CW6]",
+                "[CW7]","[CW8]","[SMG]","[UAC]","[DAM]",
+                "[FAT]","[ISU]","[HLG]","[BFS]","[DTS]",
+                "[BFE]","[DTE]","[ALM]","[BSM]","[NPC]",
+                "[LOT]","[PGR]","[LTR]","[SYN]","[NPA]",
+                "[FCA]","[FCL]","[RNT]","[SMK]","[RND]",
+                "[ORC]","[PTA]","[PTL]","[MBA]"
+        };
+
 
         //Google Translate
         private static readonly GoogleTranslator TransG = new GoogleTranslator();
@@ -168,6 +168,13 @@ namespace DalamudPlugin
             // Initializing plugin, hooking into chat.
             this.pluginInterface = pluginInterface;
             Configuration = pluginInterface.GetPluginConfig() as ChatExtenderPluginConfiguration ?? new ChatExtenderPluginConfiguration();
+
+            tab_ind = UintCol(255, 50, 70, 50);
+            tab_ind_text = UintCol(255, 150, 150, 150);
+            tab_norm = UintCol(255, 50, 50, 50);
+            tab_norm_text = UintCol(255, 150, 150, 150);
+            tab_sel = UintCol(255, 90, 90, 90);
+            tab_sel_text = UintCol(255, 250, 255, 255);
 
             try
             { rTr = Configuration.RTr.ToString(); }
@@ -258,12 +265,16 @@ namespace DalamudPlugin
             }
 
             try
-            { high = Configuration.High; }
+            {
+                high = Configuration.High;
+                tempHigh = String.Join(",",high.highlights);
+            }
             catch (Exception)
             {
                 PluginLog.LogError("Failed to Load Highlighter");
                 high = new Highlighter();
             }
+
             try
             {
                 if (high.highlights.Length < 1)
@@ -279,7 +290,7 @@ namespace DalamudPlugin
 
 
             try
-            { no_mouse = Configuration.NoMouse2; }
+            { no_mouse2 = Configuration.NoMouse2; }
             catch (Exception)
             {
                 PluginLog.LogError("Failed to Load NoMouse2 Config!");
@@ -287,7 +298,20 @@ namespace DalamudPlugin
             }
 
             try
-            { space_hor = Configuration.Space_Hor; }
+            { no_scrollbar = Configuration.NoScrollBar; }
+            catch (Exception)
+            {
+                PluginLog.LogError("Failed to Load ScrollBar Config!");
+                no_scrollbar = false;
+            }
+
+            try
+            {
+                if (Configuration.Space_Hor.HasValue)
+                {
+                    space_hor = Configuration.Space_Hor.Value;
+                }
+            }
             catch (Exception)
             {
                 PluginLog.LogError("Failed to Load Horizontal Spacing!");
@@ -295,7 +319,12 @@ namespace DalamudPlugin
             }
 
             try
-            { no_mouse = Configuration.NoMouse2; }
+            {
+                if (Configuration.Space_Ver.HasValue)
+                {
+                    space_ver = Configuration.Space_Ver.Value;
+                }
+            }
             catch (Exception)
             {
                 PluginLog.LogError("Failed to Load Vertical Spacing!");
@@ -318,7 +347,6 @@ namespace DalamudPlugin
                 PluginLog.LogError("Failed to Load Time Colour!");
                 timeColour = new Num.Vector4(255, 255, 255, 255);
             }
-
 
             //TODO: try/catch this?
             if (Configuration.Items == null)
@@ -353,6 +381,16 @@ namespace DalamudPlugin
                     item.Config = temp;
                 }
             }
+
+            if (items[0].Filter==null)
+            {
+                foreach (TabBase item in items)
+                {
+                    item.Filter="";
+                    item.FilterOn=false;
+                }
+            }
+
             try
             {
                 if (Configuration.Items[0].Logs.Length < Channels.Length)
@@ -437,6 +475,64 @@ namespace DalamudPlugin
             {
                 PluginLog.Log("Fresh install, no log to fix!");
             }
+
+            //Adding in Chans
+            try
+            {
+                if (Configuration.Items[0].Chans.Length < Channels.Length)
+                {
+                    int l = 0;
+                    List<TabBase> templist = new List<TabBase>();
+                    foreach (TabBase items in Configuration.Items)
+                    {
+                        TabBase temp = new TabBase();
+                        temp.AutoScroll = items.AutoScroll;
+                        temp.Chat = items.Chat;
+                        temp.Config = items.Config;
+                        temp.Enabled = items.Enabled;
+                        temp.Scroll = items.Scroll;
+                        temp.Title = items.Title;
+                        temp.Logs = items.Logs.ToArray();
+                        temp.Chans =
+                            new bool[] {
+                                true, true, true, true, true,
+                                true, true, true, true, true,
+                                true, true, true, true, true,
+                                true, true, true, true, true,
+                                true, true, true, true, true,
+                                true, true, true, true, true,
+                                true, true, true, true, true,
+                                true, true, true, true, true,
+                                true, true, true, true, true,
+                                true, true, true, true, true,
+                                true, true, true, true, true,
+                                true, true, true, true, true,
+                                true, true, true, true
+                            };
+                        templist.Add(temp);
+                        l++;
+                    }
+
+                    items = templist;
+                }
+
+            }
+            catch (Exception)
+            {
+                PluginLog.Log("Fresh install, no Chans to fix!");
+            }
+
+            try
+            {
+                if (Configuration.Chan.Length > 30)
+                {
+                    Chan = Configuration.Chan.ToArray();
+                }
+            }
+            catch(Exception)
+            {
+                PluginLog.Log("No Chan list to load");
+            }
             
             SaveConfig();
 
@@ -445,7 +541,7 @@ namespace DalamudPlugin
             // Set up command handlers
             this.pluginInterface.CommandManager.AddHandler("/cht", new CommandInfo(OnTranslateCommand)
             {
-                HelpMessage = "Configure Translator Engine of Translator. Usage: /cht t <#> (1=Google, 2=Yandex)"
+                HelpMessage = "Open config with '/cht c', and the extender with '/cht w'"
             });
 
             this.pluginInterface.Framework.Gui.Chat.OnChatMessage += Chat_OnChatMessage;
@@ -473,6 +569,8 @@ namespace DalamudPlugin
                     babyClone.Logs = tabs.Logs.ToArray();
                     babyClone.Scroll = tabs.Scroll;
                     babyClone.Title = tabs.Title.ToString();
+                    babyClone.Filter = tabs.Filter.ToString();
+                    babyClone.FilterOn = tabs.FilterOn;
                     clone.Add(babyClone);
                 }
             }
@@ -494,6 +592,8 @@ namespace DalamudPlugin
                     babyClone.Logs = tabs.Logs.ToArray();
                     babyClone.Scroll = tabs.Scroll;
                     babyClone.Title = tabs.Title.ToString();
+                    babyClone.Filter = tabs.Filter.ToString();
+                    babyClone.FilterOn = tabs.FilterOn;
                     clone.Add(babyClone);
                 }
             }
@@ -574,19 +674,21 @@ namespace DalamudPlugin
             public bool NoMouse2 { get; set; }
             public bool NoMove { get; set; }
             public bool NoResize { get; set; }
-            public int Space_Hor { get; set; }
-            public int Space_Ver { get; set; }
+            public bool NoScrollBar { get; set; }
+            public int? Space_Hor { get; set; }
+            public int? Space_Ver { get; set; }
             public Num.Vector4 TimeColour { get; set; }
             public Highlighter High { get; set; }
+            public String[] Chan { get; set; }
         }
 
         private void ChatUI()
         {
             ImGuiWindowFlags chat_window_flags = 0;
             ImGuiWindowFlags chat_sub_window_flags = 0;
-
             if (no_titlebar) chat_window_flags |= ImGuiWindowFlags.NoTitleBar;
             if (no_scrollbar) chat_window_flags |= ImGuiWindowFlags.NoScrollbar;
+            if (no_scrollbar) chat_sub_window_flags |= ImGuiWindowFlags.NoScrollbar;
             if (!no_menu) chat_window_flags |= ImGuiWindowFlags.MenuBar;
             if (no_move) chat_window_flags |= ImGuiWindowFlags.NoMove;
             if (no_resize) chat_window_flags |= ImGuiWindowFlags.NoResize;
@@ -606,6 +708,7 @@ namespace DalamudPlugin
                 ImGui.SetNextWindowBgAlpha(alpha);
                 ImGui.Begin("Another Window", ref chatWindow, chat_window_flags);
                 ImGuiTabBarFlags tab_bar_flags = ImGuiTabBarFlags.None;
+
                 if (ImGui.BeginTabBar("Tabs", tab_bar_flags))
                 {
                     int loop = 0;
@@ -613,8 +716,30 @@ namespace DalamudPlugin
                     {
                         if (tab.Enabled)
                         {
+                            //WIP
+
+                            if (tab.sel)
+                            {
+                                ImGui.PushStyleColor(ImGuiCol.Tab, tab_sel);
+                                ImGui.PushStyleColor(ImGuiCol.Text, tab_sel_text);
+                                tab.sel = false;
+                            }
+                            else if (tab.msg)
+                            {
+                                ImGui.PushStyleColor(ImGuiCol.Tab, tab_ind);
+                                ImGui.PushStyleColor(ImGuiCol.Text, tab_ind_text);
+                            }
+                            else
+                            {
+                                ImGui.PushStyleColor(ImGuiCol.Tab, tab_norm);
+                                ImGui.PushStyleColor(ImGuiCol.Text, tab_norm_text);
+                            }
+
+
+
                             if (ImGui.BeginTabItem(tab.Title))
                             {
+                                tab.sel = true;
                                 float footer = (ImGui.GetStyle().ItemSpacing.Y) / 2 + ImGui.GetFrameHeightWithSpacing();
                                 ImGui.PushStyleVar(ImGuiStyleVar.ItemSpacing, new Num.Vector2(space_hor, space_ver));
                                 ImGui.BeginChild("scrolling", new Num.Vector2(0, -footer), false, chat_sub_window_flags);
@@ -622,34 +747,72 @@ namespace DalamudPlugin
 
                                 foreach (ChatText line in tab.Chat)
                                 {
-
-                                    if (tab.Config[0]) { ImGui.TextColored(timeColour, line.Time + " "); ImGui.SameLine(); }
-                                    if (tab.Config[1]) { ImGui.TextColored(chanColour[ConvertForArray(line.Channel)], line.ChannelShort + " "); ImGui.SameLine(); }
-                                    if (line.Sender.Length > 0) { ImGui.TextColored(chanColour[ConvertForArray(line.Channel)], line.Sender + ":"); ImGui.SameLine(); }
-
-                                    int count = 0;
-                                    foreach (TextTypes textTypes in line.Text)
+                                    if (tab.FilterOn)
                                     {
-                                        if (textTypes.Type == PayloadType.RawText)
+                                        if (ContainsText(line.Text, tab.Filter))
                                         {
-                                            ImGui.PushStyleColor(ImGuiCol.Text, logColour[line.ChannelColour]);
-                                            Wrap(textTypes.Text);
-                                            ImGui.PopStyleColor();
-                                        }
+                                            if (tab.Config[0]) { ImGui.TextColored(timeColour, line.Time + " "); ImGui.SameLine(); }
+                                            if (tab.Config[1] && tab.Chans[ConvertForArray(line.Channel)]) { ImGui.TextColored(chanColour[ConvertForArray(line.Channel)], line.ChannelShort + " "); ImGui.SameLine(); }
+                                            if (line.Sender.Length > 0) { ImGui.TextColored(chanColour[ConvertForArray(line.Channel)], line.Sender + ":"); ImGui.SameLine(); }
 
-                                        if (textTypes.Type == PayloadType.MapLink)
-                                        {
-                                            if (ImGui.GetContentRegionAvail().X - 5 - ImGui.CalcTextSize(textTypes.Text).X < 0) { ImGui.Text(""); }
-                                            if (ImGui.SmallButton(textTypes.Text))
+                                            int count = 0;
+                                            foreach (TextTypes textTypes in line.Text)
                                             {
-                                                this.pluginInterface.Framework.Gui.OpenMapWithMapLink((Dalamud.Game.Chat.SeStringHandling.Payloads.MapLinkPayload)textTypes.Payload);
+                                                if (textTypes.Type == PayloadType.RawText)
+                                                {
+                                                    ImGui.PushStyleColor(ImGuiCol.Text, logColour[line.ChannelColour]);
+                                                    Wrap(textTypes.Text);
+                                                    ImGui.PopStyleColor();
+                                                }
+
+                                                if (textTypes.Type == PayloadType.MapLink)
+                                                {
+                                                    if (ImGui.GetContentRegionAvail().X - 5 - ImGui.CalcTextSize(textTypes.Text).X < 0) { ImGui.Text(""); }
+                                                    if (ImGui.SmallButton(textTypes.Text))
+                                                    {
+                                                        this.pluginInterface.Framework.Gui.OpenMapWithMapLink((Dalamud.Game.Chat.SeStringHandling.Payloads.MapLinkPayload)textTypes.Payload);
+                                                    }
+                                                }
+
+                                                if (count < (line.Text.Count - 1))
+                                                {
+                                                    ImGui.SameLine();                                                    count++;
+                                                }
+
                                             }
                                         }
+                                    }
+                                    else
+                                    {
+                                        if (tab.Config[0]) { ImGui.TextColored(timeColour, line.Time + " "); ImGui.SameLine(); }
+                                        if (tab.Config[1] && tab.Chans[ConvertForArray(line.Channel)]) { ImGui.TextColored(chanColour[ConvertForArray(line.Channel)], line.ChannelShort + " "); ImGui.SameLine(); }
+                                        if (line.Sender.Length > 0) { ImGui.TextColored(chanColour[ConvertForArray(line.Channel)], line.Sender + ":"); ImGui.SameLine(); }
 
-                                        if (count < (line.Text.Count - 1))
+                                        int count = 0;
+                                        foreach (TextTypes textTypes in line.Text)
                                         {
-                                            ImGui.SameLine();
-                                            count++;
+                                            if (textTypes.Type == PayloadType.RawText)
+                                            {
+                                                ImGui.PushStyleColor(ImGuiCol.Text, logColour[line.ChannelColour]);
+                                                Wrap(textTypes.Text);
+                                                ImGui.PopStyleColor();
+                                            }
+
+                                            if (textTypes.Type == PayloadType.MapLink)
+                                            {
+                                                if (ImGui.GetContentRegionAvail().X - 5 - ImGui.CalcTextSize(textTypes.Text).X < 0) { ImGui.Text(""); }
+                                                if (ImGui.SmallButton(textTypes.Text))
+                                                {
+                                                    this.pluginInterface.Framework.Gui.OpenMapWithMapLink((Dalamud.Game.Chat.SeStringHandling.Payloads.MapLinkPayload)textTypes.Payload);
+                                                }
+                                            }
+
+                                            if (count < (line.Text.Count - 1))
+                                            {
+                                                ImGui.SameLine();
+                                                count++;
+                                            }
+
                                         }
 
                                     }
@@ -664,6 +827,12 @@ namespace DalamudPlugin
                                 ImGui.PopStyleVar();
                                 ImGui.EndChild();
 
+                                if (tab.FilterOn)
+                                {
+                                    ImGui.InputText("Filter Text", ref tab.Filter, 999);
+                                    if (ImGui.IsItemHovered()) { ImGui.SetTooltip("Only show lines with this text."); }
+                                }
+
                                 if (no_mouse2 && !no_mouse)
                                 {
                                     Num.Vector2 vMin = ImGui.GetWindowContentRegionMin();
@@ -671,13 +840,16 @@ namespace DalamudPlugin
 
                                     vMin.X += ImGui.GetWindowPos().X;
                                     vMin.Y += ImGui.GetWindowPos().Y + 22;
-                                    vMax.X += ImGui.GetWindowPos().X;
+                                    vMax.X += ImGui.GetWindowPos().X - 22;
                                     vMax.Y += ImGui.GetWindowPos().Y;
 
                                     if (ImGui.IsMouseHoveringRect(vMin, vMax)) { no_mouse = true; flickback = true; }
                                 }
+                                tab.msg = false;
                                 ImGui.EndTabItem();
                             }
+                            ImGui.PopStyleColor();
+                            ImGui.PopStyleColor();
                         }
                         loop++;
                     }
@@ -688,6 +860,8 @@ namespace DalamudPlugin
 
             if (configWindow)
             {
+                //ImGui.PushFont(font);
+
                 ImGui.SetNextWindowSize(new Num.Vector2(300, 500), ImGuiCond.FirstUseEver);
                 ImGui.Begin("Chat Config", ref configWindow);
                 ImGuiTabBarFlags tab_bar_flags = ImGuiTabBarFlags.None;
@@ -699,31 +873,41 @@ namespace DalamudPlugin
                         ImGui.BeginChild("scrolling", new Num.Vector2(0, -footer1), false);
                         ImGui.Text("");
                         ImGui.Columns(3);
-                        
                         ImGui.Checkbox("Inject Translation", ref injectChat);
-                        if (ImGui.IsItemHovered()) { ImGui.SetTooltip("Inject translated text into the normal FFXIV Chatbox"); } ImGui.NextColumn();
+                        if (ImGui.IsItemHovered()) { ImGui.SetTooltip("Inject translated text into the normal FFXIV Chatbox"); }
+                        ImGui.NextColumn();
                         ImGui.Checkbox("Chat Extender", ref chatWindow);
-                        if (ImGui.IsItemHovered()) { ImGui.SetTooltip("Enable/Disable the Chat Extender"); } ImGui.NextColumn();
-                        ImGui.Text(""); ImGui.NextColumn();
-                        
-                        ImGui.Checkbox("Lock Position", ref no_move);
+                        if (ImGui.IsItemHovered()) { ImGui.SetTooltip("Enable/Disable the Chat Extender"); }
+                        ImGui.NextColumn();
+                        ImGui.Text("");
+                        ImGui.NextColumn();
+
+                        ImGui.Checkbox("Scrollbar", ref no_scrollbar);
+                        if (ImGui.IsItemHovered()) { ImGui.SetTooltip("Shows ScrollBar"); }
+                        ImGui.NextColumn();
+                        ImGui.Checkbox("Lock Window Position", ref no_move);
                         if (ImGui.IsItemHovered()) { ImGui.SetTooltip("Lock/Unlock the position of the Chat Extender"); }
                         ImGui.NextColumn();
-                        ImGui.Checkbox("Lock Size", ref no_resize);
+                        ImGui.Checkbox("Lock Window Size", ref no_resize);
                         if (ImGui.IsItemHovered()) { ImGui.SetTooltip("Lock/Unlock the size of the Chat Extender"); }
                         ImGui.NextColumn();
+
                         ImGui.Checkbox("ClickThrough Tab Bar", ref no_mouse);
                         if (ImGui.IsItemHovered()) { ImGui.SetTooltip("Enable/Disable being able to clickthrough the Tab Bar of the Chat Extender"); }
                         ImGui.NextColumn();
-
                         ImGui.Checkbox("ClickThrough Chat", ref no_mouse2);
                         if (ImGui.IsItemHovered()) { ImGui.SetTooltip("Enable/Disable being able to clickthrough the Chat Extension chatbox"); }
                         ImGui.NextColumn();
-                        ImGui.InputInt("H Spacing",ref space_hor);
+                        ImGui.Text("");
+                        ImGui.NextColumn();
+
+                        ImGui.InputInt("H Spacing", ref space_hor);
                         if (ImGui.IsItemHovered()) { ImGui.SetTooltip("Horizontal spacing of chat text"); }
                         ImGui.NextColumn();
                         ImGui.InputInt("V Spacing", ref space_ver);
                         if (ImGui.IsItemHovered()) { ImGui.SetTooltip("Vertical spacing of cha text"); }
+                        ImGui.NextColumn();
+                        ImGui.Text("");
                         ImGui.NextColumn();
 
                         ImGui.Columns(1);
@@ -738,7 +922,7 @@ namespace DalamudPlugin
                         if (ImGui.IsItemHovered()) { ImGui.SetTooltip("Alter the characters on the right of Translated text"); }
                         ImGui.PopItemWidth();
                         ImGui.Text("");
-                        
+
                         ImGui.Text("");
                         ImGui.SliderFloat("Chat Extender Alpha", ref alpha, 0.001f, 0.999f);
                         if (ImGui.IsItemHovered()) { ImGui.SetTooltip("Alter the Alpha of the Chat Extender"); }
@@ -759,7 +943,7 @@ namespace DalamudPlugin
                                 ImGui.Text(items[i].Title); ImGui.NextColumn();
                                 if (i > 0)
                                 {
-                                    if (ImGui.Button("^##"+i.ToString()))
+                                    if (ImGui.Button("^##" + i.ToString()))
                                     {
                                         TabBase mover = temp_clone[i];
                                         temp_clone.RemoveAt(i);
@@ -767,7 +951,7 @@ namespace DalamudPlugin
                                     }
                                 }
                                 ImGui.NextColumn();
-                                if (i < items.Count-1)
+                                if (i < items.Count - 1)
                                 {
                                     if (ImGui.Button("v##" + i.ToString()))
                                     {
@@ -785,18 +969,21 @@ namespace DalamudPlugin
                         }
 
 
-                        if (ImGui.TreeNode("Colours"))
+                        if (ImGui.TreeNode("Channels"))
                         {
-                            
-                            ImGui.Columns(3);
+
+                            ImGui.Columns(4);
                             ImGui.Text("Example"); ImGui.NextColumn();
-                            ImGui.Text("Channel"); ImGui.NextColumn();
-                            ImGui.Text("Text"); ImGui.NextColumn();
+                            ImGui.Text("Colour 1"); ImGui.NextColumn();
+                            ImGui.Text("Colour 2"); ImGui.NextColumn();
+                            ImGui.Text(""); ImGui.NextColumn();
                             ImGui.TextColored(timeColour, "[12:00]"); ImGui.NextColumn();
                             ImGui.ColorEdit4("Time Colour", ref timeColour, ImGuiColorEditFlags.NoInputs | ImGuiColorEditFlags.NoLabel); ImGui.NextColumn();
                             ImGui.Text(""); ImGui.NextColumn();
+                            ImGui.Text(""); ImGui.NextColumn();
                             for (int i = 0; i < (Channels.Length); i++)
                             {
+                                ImGui.InputText("##Tab Name"+i.ToString(), ref Chan[i], 99); ImGui.NextColumn();
                                 ImGui.TextColored(chanColour[i], "[" + Channels[i] + "]"); ImGui.SameLine(); ImGui.TextColored(logColour[i], "Text"); ImGui.NextColumn();
                                 ImGui.ColorEdit4(Channels[i] + " Colour1", ref chanColour[i], ImGuiColorEditFlags.NoInputs | ImGuiColorEditFlags.NoLabel); ImGui.NextColumn();
                                 ImGui.ColorEdit4(Channels[i] + " Colour2", ref logColour[i], ImGuiColorEditFlags.NoInputs | ImGuiColorEditFlags.NoLabel); ImGui.NextColumn();
@@ -830,9 +1017,9 @@ namespace DalamudPlugin
                         }
                         ImGui.Columns(4);
                         ImGui.SliderInt("Alpha", ref high.htA, 0, 255); ImGui.NextColumn();
-                        ImGui.SliderInt("Blue",  ref high.htB, 0, 255); ImGui.NextColumn();
+                        ImGui.SliderInt("Blue", ref high.htB, 0, 255); ImGui.NextColumn();
                         ImGui.SliderInt("Green", ref high.htG, 0, 255); ImGui.NextColumn();
-                        ImGui.SliderInt("Red",   ref high.htR, 0, 255); ImGui.NextColumn();
+                        ImGui.SliderInt("Red", ref high.htR, 0, 255); ImGui.NextColumn();
                         ImGui.Columns(1);
                         ImGui.Text("");
 
@@ -872,24 +1059,39 @@ namespace DalamudPlugin
                                         tempTitle = "Title";
                                     }
                                     if (ImGui.IsItemHovered()) { ImGui.SetTooltip("Change the title of the Tab"); }
+
+                                    ImGui.Columns(3);
+                                    
                                     ImGui.Checkbox("Time Stamp", ref tab.Config[0]);
                                     if (ImGui.IsItemHovered()) { ImGui.SetTooltip("Show Timestamps in this Tab"); }
-                                    ImGui.SameLine();
+                                    ImGui.NextColumn();
                                     ImGui.Checkbox("Channel", ref tab.Config[1]);
                                     if (ImGui.IsItemHovered()) { ImGui.SetTooltip("Show the Channel the message came from"); }
-                                    ImGui.SameLine();
+                                    ImGui.NextColumn();
                                     ImGui.Checkbox("Translate", ref tab.Config[2]);
                                     if (ImGui.IsItemHovered()) { ImGui.SetTooltip("Enable Japanese -> English translation"); }
+                                    ImGui.NextColumn();
+
                                     ImGui.Checkbox("AutoScroll", ref tab.AutoScroll);
                                     if (ImGui.IsItemHovered()) { ImGui.SetTooltip("Enable the Chat to scroll automatically on a new message"); }
-                                    ImGui.SameLine();
+                                    ImGui.NextColumn();
                                     ImGui.Checkbox("Save to file", ref tab.Config[3]);
                                     if (ImGui.IsItemHovered()) { ImGui.SetTooltip("Write this tab to '\\My Documents\\FFXIV_ChatExtender\\Logs\\<YYYYMMDD>_TAB.txt"); }
+                                    ImGui.NextColumn();
+                                    ImGui.Checkbox("Enable Filter", ref tab.FilterOn);
+                                    if (ImGui.IsItemHovered()) { ImGui.SetTooltip("Enable Filtering of text"); }
+                                    ImGui.NextColumn();
+
+                                    ImGui.Columns(1);
+
+                                    ImGui.Text("");
+
 
                                     //TODO: Add a confirm prompt
-                                    if (ImGui.Button("Delete Tab"))
-                                    {
-                                        if (EnabledTabs(items) > 1)
+
+                                    if (EnabledTabs(items) > 1)
+                                    { 
+                                        if (ImGui.Button("Delete Tab"))
                                         { tab.Enabled = false; }
                                     }
                                     if (ImGui.IsItemHovered()) { ImGui.SetTooltip("Removes Tab"); }
@@ -897,13 +1099,17 @@ namespace DalamudPlugin
 
 
                                     ImGui.Columns(2);
-                                    ImGui.Text("Enable Channels"); ImGui.NextColumn();
-                                    ImGui.Text(""); ImGui.NextColumn();
+                                    ImGui.Text("Channel"); ImGui.NextColumn();
+                                    if (tab.Config[1]) { ImGui.Text("Show Short"); }
+                                    else { ImGui.Text(""); }
+                                    ImGui.NextColumn();
 
                                     for (int i = 0; i < (Channels.Length); i++)
                                     {
                                         ImGui.PushStyleColor(ImGuiCol.Text, chanColour[i]);
                                         ImGui.Checkbox("[" + Channels[i] + "]", ref tab.Logs[i]); ImGui.NextColumn();
+                                        if (tab.Config[1]) { ImGui.Checkbox(Chan[i], ref tab.Chans[i]); }
+                                        else { ImGui.Text(""); } ImGui.NextColumn();
                                         ImGui.PopStyleColor();
                                     }
                                     ImGui.Columns(1);
@@ -916,17 +1122,38 @@ namespace DalamudPlugin
                         ImGui.EndTabItem();
                     }
 
+                    /*
+                    if (ImGui.BeginTabItem("Debug"))
+                    {
+                        ImGui.Text("This is not the tab you are looking for. Move along.");
+                        ImGui.EndTabItem();
+                    }
+                    */
                 }
+
                 ImGui.EndTabBar();
                 ImGui.EndChild();
+
+                //ImGui.PopFont();
             }
         }
 
-        public uint UintCol(int R, int G, int B, int A)
+        public uint UintCol(int A, int B, int G, int R)
         {
             //PluginLog.Log();
-            return Convert.ToUInt32("0x" + R.ToString("X2") + G.ToString("X2") + B.ToString("X2") + A.ToString("X2"), 16);
+            return Convert.ToUInt32("0x" + A.ToString("X2") + B.ToString("X2") + G.ToString("X2") + R.ToString("X2"), 16);
             //return UInt32.Parse("0x" + R.ToString("X2") + G.ToString("X2") + B.ToString("X2") + A.ToString("X2"));
+        }
+
+        public bool ContainsText(List<TextTypes> text,string find)
+        {
+            String concat = "";
+                foreach(TextTypes texts in text)
+            {
+                concat += texts.Text + " ";
+            }
+
+            return concat.Contains(find);
         }
 
         public void SaveConfig()
@@ -947,6 +1174,7 @@ namespace DalamudPlugin
             Configuration.Space_Ver = space_ver;
             Configuration.TimeColour = timeColour;
             Configuration.High = high;
+            Configuration.Chan = Chan.ToArray();
             this.pluginInterface.SavePluginConfig(Configuration);
         }
 
@@ -967,7 +1195,8 @@ namespace DalamudPlugin
                 ImGui.Text(splits);
                 foreach (String word in high.highlights)
                 {
-                    if(splits == word) HighlightText();
+                    string search = StripPunctuation(splits.ToLower());
+                    if (search == word) HighlightText();
                 }
 
                 if (count < (inputArray.Length - 1))
@@ -977,6 +1206,18 @@ namespace DalamudPlugin
                 }
             }
         }
+
+        public static string StripPunctuation(string s)
+        {
+            var sb = new StringBuilder();
+            foreach (char c in s)
+            {
+                if (!char.IsPunctuation(c))
+                    sb.Append(c);
+            }
+            return sb.ToString();
+        }
+
 
         public int EnabledTabs(List<TabBase> countMe)
         {
@@ -991,104 +1232,24 @@ namespace DalamudPlugin
 
         public int ConvertForArray(string type)
         {
-            if (type == "None") return 0;
-            if (type == "Debug") return 1;
-            if (type == "Urgent") return 2;
-            if (type == "Notice") return 3;
-            if (type == "Say") return 4;
-            if (type == "Shout") return 5;
-            if (type == "TellOutgoing") return 6;
-            if (type == "TellIncoming") return 7;
-            if (type == "Party") return 8;
-            if (type == "Alliance") return 9;
-            if (type == "Ls1") return 10;
-            if (type == "Ls2") return 11;
-            if (type == "Ls3") return 12;
-            if (type == "Ls4") return 13;
-            if (type == "Ls5") return 14;
-            if (type == "Ls6") return 15;
-            if (type == "Ls7") return 16;
-            if (type == "Ls8") return 17;
-            if (type == "FreeCompany") return 18;
-            if (type == "NoviceNetwork") return 19;
-            if (type == "CustomEmote") return 20;
-            if (type == "StandardEmote") return 21;
-            if (type == "Yell") return 22;
-            if (type == "CrossParty") return 23;
-            if (type == "PvPTeam") return 24;
-            if (type == "CrossLinkShell1") return 29;
-            if (type == "Echo") return 25;
-            if (type == "SystemError") return 26;
-            if (type == "GatheringSystemMessage") return 27;
-            if (type == "RetainerSale") return 28;
-            if (type == "CrossLinkShell2") return 30;
-            if (type == "CrossLinkShell3") return 31;
-            if (type == "CrossLinkShell4") return 32;
-            if (type == "CrossLinkShell5") return 33;
-            if (type == "CrossLinkShell6") return 34;
-            if (type == "CrossLinkShell7") return 35;
-            if (type == "CrossLinkShell8") return 36;
-            if (type == "SystemMessage") return 37;
-            if (type == "Actions") { return 38; }
-            if (type == "Damage") { return 39; }
-            if (type == "FailedAttacks") { return 40; }
-            if (type == "ItemsUsed") { return 41; }
-            if (type == "Healing") { return 42; }
-            if (type == "BenefictsStart") { return 43; }
-            if (type == "DetrimentsStart") { return 44; }
-            if (type == "BenefictsEnd") { return 45; }
-            if (type == "DetrimentsEnd") { return 46; }
-            if (type == "Alarms") { return 47; }
-            if (type == "BattleSystemMessage") { return 48; }
-            if (type == "NPC") { return 49; }
-            if (type == "Loot") { return 50; }
-            if (type == "Progression") { return 51; }
-            if (type == "LootRolls") { return 52; }
-            if (type == "Synthesis") { return 53; }
-            if (type == "NPCAnnouncement") { return 54; }
-            if (type == "FCAnnouncement") { return 55; }
-            if (type == "FCLogin") { return 56; }
-            if (type == "RecruitmentNotice") { return 57; }
-            if (type == "SignMarking") { return 58; }
-            if (type == "Randoms") { return 59; }
-            if (type == "OrchestronTrack") { return 60; }
-            if (type == "PVPTeamAnnouncement") { return 61; }
-            if (type == "PVPTeamLogin") { return 62; }
-            if (type == "MessageBookAlert") { return 63; }
-
-            else {
-                //PluginLog.Log(type.ToString());
-                type = AddOnChannels(Int32.Parse(type.ToString()) & 127);
-                if (type == "SystemMessage") { return 37; }
-                if (type == "Actions") { return 38; }
-                if (type == "Damage") { return 39; }
-                if (type == "FailedAttacks") { return 40; }
-                if (type == "ItemsUsed") { return 41; }
-                if (type == "Healing") { return 42; }
-                if (type == "BenefictsStart") { return 43; }
-                if (type == "DetrimentsStart") { return 44; }
-                if (type == "BenefictsEnd") { return 45; }
-                if (type == "DetrimentsEnd") { return 46; }
-                if (type == "Alarms") { return 47; }
-                if (type == "BattleSystemMessage") { return 48; }
-                if (type == "NPC") { return 49; }
-                if (type == "Loot") { return 50; }
-                if (type == "Progression") { return 51; }
-                if (type == "LootRolls") { return 52; }
-                if (type == "Synthesis") { return 53; }
-                if (type == "NPCAnnouncement") { return 54; }
-                if (type == "FCAnnouncement") { return 55; }
-                if (type == "FCLogin") { return 56; }
-                if (type == "RecruitmentNotice") { return 57; }
-                if (type == "SignMarking") { return 58; }
-                if (type == "Randoms") { return 59; }
-                if (type == "OrchestronTrack") { return 60; }
-                if (type == "PVPTeamAnnouncement") { return 61; }
-                if (type == "PVPTeamLogin") { return 62; }
-                if (type == "MessageBookAlert") { return 63; }
-
-                else return Int32.Parse(type.ToString()) & 127;
+            try
+            {
+                int value = Array.IndexOf(Channels, type);
+                if (value >= 0) { return Array.IndexOf(Channels, type); }
+                else
+                {
+                    PluginLog.Log(type);
+                    type = AddOnChannels(Int32.Parse(type.ToString()) & 127);
+                    value = Array.IndexOf(Channels, type);
+                    if (value >= 0) { return Array.IndexOf(Channels, type); }
+                    else { return Int32.Parse(type.ToString()) & 127; }
                 }
+            }
+            catch (Exception e)
+            {
+                PluginLog.Log(e.ToString());
+                return 0;
+            }
         }
 
         public string AddOnChannels(int channel)
@@ -1125,105 +1286,10 @@ namespace DalamudPlugin
 
         public string GetChannelName(string type)
         {
-            if (type == "None") return "[NNE]";
-            if (type == "Debug") return "[DBG]";
-            if (type == "Urgent") return "[URG]";
-            if (type == "Notice") return "[NTC]";
-            if (type == "Say") return "[SAY]";
-            if (type == "Shout") return "[SHT]";
-            if (type == "TellOutgoing") return "[TLO]";
-            if (type == "TellIncoming") return "[TLI]";
-            if (type == "Party") return "[PTY]";
-            if (type == "Alliance") return "[ALC]";
-            if (type == "Ls1") return "[LS1]";
-            if (type == "Ls2") return "[LS2]";
-            if (type == "Ls3") return "[LS3]";
-            if (type == "Ls4") return "[LS4]";
-            if (type == "Ls5") return "[LS5]";
-            if (type == "Ls6") return "[LS6]";
-            if (type == "Ls7") return "[LS7]";
-            if (type == "Ls8") return "[LS8]";
-            if (type == "FreeCompany") return "[FRC]";
-            if (type == "NoviceNetwork") return "[NNW]";
-            if (type == "CustomEmote") return "[EMC]";
-            if (type == "StandardEmote") return "[EMS]";
-            if (type == "Yell") return "[YLL]";
-            if (type == "CrossParty") return "[CPT]";
-            if (type == "PvPTeam") return "[PVP]";
-            if (type == "CrossLinkShell1") return "[CW1]";
-            if (type == "Echo") return "[ECH]";
-            if (type == "SystemError") return "[SER]";
-            if (type == "GatheringSystemMessage") return "[GSM]";
-            if (type == "RetainerSale") return "[RSL]";
-            if (type == "CrossLinkShell2") return "[CW2]";
-            if (type == "CrossLinkShell3") return "[CW3]";
-            if (type == "CrossLinkShell4") return "[CW4]";
-            if (type == "CrossLinkShell5") return "[CW5]";
-            if (type == "CrossLinkShell6") return "[CW6]";
-            if (type == "CrossLinkShell7") return "[CW7]";
-            if (type == "CrossLinkShell8") return "[CW8]";
-            if (type == "SystemMessage") return "[SMG]";
-            if (type == "Actions") return "[UAC]";
-            if (type == "Damage") return "[DAM]";
-            if (type == "FailedAttacks") return "[FAT]";
-            if (type == "ItemsUsed") return "[ISU]";
-            if (type == "Healing") return "[HLG]";
-            if (type == "BenefictsStart") return "[BFS]";
-            if (type == "DetrimentsStart") return "[DTS]";
-            if (type == "BenefictsEnd") return "[BFE]";
-            if (type == "DetrimentsEnd") return "[DTE]";
-            if (type == "Alarms") return "[ALM]";
-            if (type == "BattleSystemMessage") return "[BSM]";
-            if (type == "NPC") return "[NPC]";
-            if (type == "Loot") return "[LOT]";
-            if (type == "Progression") return "[PGR]";
-            if (type == "LootRolls") return "[LTR]";
-            if (type == "Synthesis") return "[SYN]";
-            if (type == "NPCAnnouncement") return "[NPA]";
-            if (type == "FCAnnouncement") return "[FCA]";
-            if (type == "FCLogin") return "[FCL]";
-            if (type == "RecruitmentNotice") return "[RNT]";
-            if (type == "SignMarking") return "[SMK]";
-            if (type == "Randoms") return "[RND]";
-            if (type == "OrchestronTrack") return "[ORC]";
-            if (type == "PVPTeamAnnouncement") return "[PTA]";
-            if (type == "PVPTeamLogin") return "[PTL]";
-            if (type == "MessageBookAlert") return "[MBA]";
-
-
-            else
-            {
-                type = AddOnChannels(Int32.Parse(type.ToString()) & 127);
-                if (type == "SystemMessage") return "[SMG]";
-                if (type == "Actions") return "[ACT]";
-                if (type == "Damage") return "[DAM]";
-                if (type == "FailedAttacks") return "[FAT]";
-                if (type == "ItemsUsed") return "[ISU]";
-                if (type == "Healing") return "[HLG]";
-                if (type == "BenefictsStart") return "[BFS]";
-                if (type == "DetrimentsStart") return "[DTS]";
-                if (type == "BenefictsEnd") return "[BFE]";
-                if (type == "DetrimentsEnd") return "[DTE]";
-                if (type == "Alarms") return "[ALM]";
-                if (type == "BattleSystemMessage") return "[BSM]";
-                if (type == "NPC") return "[NPC]";
-                if (type == "Loot") return "[LOT]";
-                if (type == "Progression") return "[PGR]";
-                if (type == "LootRolls") return "[LTR]";
-                if (type == "Synthesis") return "[SYN]";
-                if (type == "NPCAnnouncement") return "[NPA]";
-                if (type == "FCAnnouncement") return "[FCA]";
-                if (type == "FCLogin") return "[FCL]";
-                if (type == "RecruitmentNotice") return "[RNT]";
-                if (type == "SignMarking") return "[SMK]";
-                if (type == "Randoms") return "[RND]";
-                if (type == "OrchestronTrack") return "[ORC]";
-                if (type == "PVPTeamAnnouncement") return "[PTA]";
-                if (type == "PVPTeamLogin") return "[PTL]";
-                if (type == "MessageBookAlert") return "[MBA]";
-
-                else return "[?]";
-            }
+            try
+            { return Chan[ConvertForArray(type)]; }
+            catch(Exception)
+            { return type; }
         }
 
         private void Chat_OnChatMessage(XivChatType type, uint senderId, ref SeString sender, ref SeString message, ref bool isHandled)
@@ -1348,6 +1414,7 @@ namespace DalamudPlugin
                         {
                             tab.Scroll = true;
                         }
+                        tab.msg = true;
                     }
                 }
                 else PluginLog.Log("[" + chan.ToString() + "] " + message.TextValue);
@@ -1515,6 +1582,22 @@ namespace DalamudPlugin
                 false, false, false, false
             };
 
+            public bool[] Chans = {
+                true, true, true, true, true,
+                true, true, true, true, true,
+                true, true, true, true, true,
+                true, true, true, true, true,
+                true, true, true, true, true,
+                true, true, true, true, true,
+                true, true, true, true, true,
+                true, true, true, true, true,
+                true, true, true, true, true,
+                true, true, true, true, true,
+                true, true, true, true, true,
+                true, true, true, true, true,
+                true, true, true, true
+            };
+
             // 0 = Timestamp
             // 1 = Channel
             // 2 = Translate
@@ -1523,6 +1606,10 @@ namespace DalamudPlugin
             public bool[] Config = { false, false, false, false,false,false,false,false,false,false };
             public bool AutoScroll = true;
             public bool Scroll = false;
+            public string Filter = "";
+            public bool FilterOn = false;
+            public bool msg = false;
+            public bool sel = false;
         }
 
         public class TextTypes
