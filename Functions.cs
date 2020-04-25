@@ -110,6 +110,8 @@ namespace DalamudPlugin
             Configuration.NameColour = nameColour;
             Configuration.High = high;
             Configuration.Chan = Chan.ToArray();
+            Configuration.YandexKey = yandex.ToString();
+            Configuration.Translator = translator;
             this.pluginInterface.SavePluginConfig(Configuration);
         }
 
@@ -231,131 +233,151 @@ namespace DalamudPlugin
         {
             try
             {
-                var senderName = sender.TextValue;
-                List<Payload> payloads = message.Payloads;
-
-
-                foreach (var tab in items)
+                if (!isHandled)
                 {
-                    int chan = ConvertForArray(type.ToString());
-                    if (chan < Channels.Length)
+                    var senderName = sender.TextValue;
+                    List<Payload> payloads = message.Payloads;
+
+
+                    foreach (var tab in items)
                     {
-                        if (tab.Logs[chan])
+                        int chan = ConvertForArray(type.ToString());
+                        if (chan < Channels.Length)
                         {
-                            ChatText tmp = new ChatText();
-
-                            tmp.Time = GetTime();
-                            tmp.ChannelShort = GetChannelName(type.ToString());
-                            try
+                            if (tab.Logs[chan])
                             {
-                                tmp.Channel = Channels[chan].Trim().Replace(" ", "");
-                            }
-                            catch (Exception)
-                            {
-                                tmp.Channel = chan.ToString();
-                            }
+                                ChatText tmp = new ChatText();
 
-                            tmp.Sender = senderName;
-                            tmp.ChannelColour = ConvertForArray(type.ToString());
-                            List<TextTypes> rawtext = new List<TextTypes>();
-
-                            int replace = 0;
-                            Payload payloader = null;
-                            PayloadType payloadType = PayloadType.RawText;
-                            foreach (var payload in payloads)
-                            {
-                                //if (payload.Type == PayloadType.AutoTranslateText) { texttype = 0; }
-                                //if (payload.Type == PayloadType.Item) { texttype = 1; }
-                                if (payload.Type == PayloadType.MapLink)
+                                tmp.Time = GetTime();
+                                tmp.ChannelShort = GetChannelName(type.ToString());
+                                try
                                 {
-                                    replace = 2;
-                                    payloadType = PayloadType.MapLink;
-                                    payloader = payload;
+                                    tmp.Channel = Channels[chan].Trim().Replace(" ", "");
                                 }
-                                //if (payload.Type == PayloadType.Player) { texttype = 3; }
-                                //if (payload.Type == PayloadType.RawText) { texttype = 4; }
-                                //if (payload.Type == PayloadType.Status) { texttype = 5; }
-                                //if (payload.Type == PayloadType.UIForeground) { texttype = 6; }
-                                //if (payload.Type == PayloadType.UIGlow) { texttype = 7; }
-
-                                if (payload.Type == PayloadType.RawText)
+                                catch (Exception)
                                 {
-                                    TextTypes wrangler = new TextTypes();
-                                    wrangler.Text = payload.ToString().Split(new[] { ' ' }, 4)[3];
+                                    tmp.Channel = chan.ToString();
+                                }
 
-                                    if (replace == 1)
+                                tmp.Sender = senderName;
+                                tmp.ChannelColour = ConvertForArray(type.ToString());
+                                List<TextTypes> rawtext = new List<TextTypes>();
+
+                                int replace = 0;
+                                Payload payloader = null;
+                                PayloadType payloadType = PayloadType.RawText;
+                                
+                                //Handling Emotes
+                                if(tmp.Channel== "StandardEmote")
+                                {
+                                    tmp.Sender = "";
+                                }
+
+                                if (tmp.Channel == "CustomEmote")
+                                {
+                                    tmp.Sender = "";
+                                    TextTypes wrangle = new TextTypes();
+                                    wrangle.Type = PayloadType.RawText;
+                                    wrangle.Text = senderName;
+                                    rawtext.Add(wrangle);
+                                }
+
+                                foreach (var payload in payloads)
+                                {
+                                    //if (payload.Type == PayloadType.AutoTranslateText) { texttype = 0; }
+                                    //if (payload.Type == PayloadType.Item) { texttype = 1; }
+                                    if (payload.Type == PayloadType.MapLink)
                                     {
-                                        if (payloadType == PayloadType.MapLink)
+                                        replace = 2;
+                                        payloadType = PayloadType.MapLink;
+                                        payloader = payload;
+                                    }
+                                    //if (payload.Type == PayloadType.Player) { texttype = 3; }
+                                    //if (payload.Type == PayloadType.RawText) { texttype = 4; }
+                                    //if (payload.Type == PayloadType.Status) { texttype = 5; }
+                                    //if (payload.Type == PayloadType.UIForeground) { texttype = 6; }
+                                    //if (payload.Type == PayloadType.UIGlow) { texttype = 7; }
+
+                                    if (payload.Type == PayloadType.RawText)
+                                    {
+                                        TextTypes wrangler = new TextTypes();
+                                        wrangler.Text = payload.ToString().Split(new[] { ' ' }, 4)[3];
+
+                                        if (replace == 1)
                                         {
-                                            rawtext.RemoveAt(rawtext.Count - 1);
-                                            wrangler.Payload = payloader;
+                                            if (payloadType == PayloadType.MapLink)
+                                            {
+                                                rawtext.RemoveAt(rawtext.Count - 1);
+                                                wrangler.Payload = payloader;
+                                            }
+                                        }
+
+                                        if (replace == 0)
+                                        {
+                                            payloadType = PayloadType.RawText;
+                                        }
+
+                                        wrangler.Type = payloadType;
+                                        rawtext.Add(wrangler);
+
+                                        if (replace > 0)
+                                        {
+                                            replace--;
                                         }
                                     }
 
-                                    if (replace == 0)
+                                    //PluginLog.Log(payload.ToString());
+
+                                }
+
+                                tmp.Text = rawtext;
+
+
+
+                                tab.Chat.Add(tmp);
+
+                                if (tab.Chat.Count > 256)
+                                {
+                                    tab.Chat.RemoveAt(0);
+                                }
+
+                                if (tab.Config[3])
+                                {
+                                    //Writing to file
+                                    string filename = GetDate() + "_" + tab.Title + ".txt";
+                                    if (!System.IO.Directory.Exists(pathString))
                                     {
-                                        payloadType = PayloadType.RawText;
+                                        System.IO.Directory.CreateDirectory(pathString);
                                     }
 
-                                    wrangler.Type = payloadType;
-                                    rawtext.Add(wrangler);
-
-                                    if (replace > 0)
+                                    if (!System.IO.File.Exists(pathString + filename))
                                     {
-                                        replace--;
+                                        System.IO.File.WriteAllText(pathString + filename, tab.Title + "\n");
+                                    }
+
+                                    using (System.IO.StreamWriter file = new System.IO.StreamWriter(pathString + filename, true))
+                                    {
+                                        file.WriteLine(tmp.Time + "[" + tmp.Channel + "]" + "<" + tmp.Sender + ">:" + TextTypesToString(rawtext));
                                     }
                                 }
 
-                                //PluginLog.Log(payload.ToString());
-
-                            }
-
-                            tmp.Text = rawtext;
-
-                            String messageString = message.TextValue;
-                            String predictedLanguage = Lang(messageString);
-
-                            if (predictedLanguage == language)
-                            {
-                                Task.Run(() => Tran(type, messageString, senderName));
-                            }
-
-                            tab.Chat.Add(tmp);
-
-                            if (tab.Chat.Count > 256)
-                            {
-                                tab.Chat.RemoveAt(0);
-                            }
-
-                            if (tab.Config[3])
-                            {
-                                //Writing to file
-                                string filename = GetDate() + "_" + tab.Title + ".txt";
-                                if (!System.IO.Directory.Exists(pathString))
+                                if (tab.AutoScroll == true)
                                 {
-                                    System.IO.Directory.CreateDirectory(pathString);
+                                    tab.Scroll = true;
                                 }
-
-                                if (!System.IO.File.Exists(pathString + filename))
-                                {
-                                    System.IO.File.WriteAllText(pathString + filename, tab.Title + "\n");
-                                }
-
-                                using (System.IO.StreamWriter file = new System.IO.StreamWriter(pathString + filename, true))
-                                {
-                                    file.WriteLine(tmp.Time + "[" + tmp.Channel + "]" + "<" + tmp.Sender + ">:" + TextTypesToString(rawtext));
-                                }
+                                tab.msg = true;
                             }
-
-                            if (tab.AutoScroll == true)
-                            {
-                                tab.Scroll = true;
-                            }
-                            tab.msg = true;
                         }
-                    }
-                    else PluginLog.Log("[" + chan.ToString() + "] " + message.TextValue);
+                        else PluginLog.Log("[" + chan.ToString() + "] " + message.TextValue);
 
+                    }
+
+                    String messageString = message.TextValue;
+                    String predictedLanguage = Lang(messageString);
+                    if (predictedLanguage == language)
+                    {
+                        Task.Run(() => Tran(type, messageString, senderName));
+                    }
                 }
             }
             catch (Exception e)
@@ -459,6 +481,12 @@ namespace DalamudPlugin
                     tmp.Text.Add(translate);
 
                     tab.Chat.Add(tmp);
+
+                    if (tab.AutoScroll == true)
+                    {
+                        tab.Scroll = true;
+                    }
+                    tab.msg = true;
                 }
 
             }

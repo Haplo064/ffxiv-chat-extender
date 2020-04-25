@@ -28,7 +28,7 @@ namespace DalamudPlugin
             public string YandexKey { get; set; }
             public List<TabBase> Items { get; set; }
             public bool Inject { get; set; }
-            public int Translator { get; set; }
+            public int? Translator { get; set; }
             public bool Extender { get; set; }
             public float Alpha { get; set; }
             public Num.Vector4[] ChanColour { get; set; }

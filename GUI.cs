@@ -210,15 +210,15 @@ namespace DalamudPlugin
                 ImGui.SetNextWindowSize(new Num.Vector2(300, 500), ImGuiCond.FirstUseEver);
                 ImGui.Begin("Chat Config", ref configWindow);
                 ImGuiTabBarFlags tab_bar_flags = ImGuiTabBarFlags.None;
+
+                float footer = (ImGui.GetStyle().ItemSpacing.Y) / 2 + ImGui.GetFrameHeightWithSpacing();
+                ImGui.BeginChild("scrolling", new Num.Vector2(0, -footer), false);
+
                 if (ImGui.BeginTabBar("Tabs", tab_bar_flags))
                 {
 
-
-
                     if (ImGui.BeginTabItem("Config"))
                     {
-                        float footer1 = (ImGui.GetStyle().ItemSpacing.Y) / 2 + ImGui.GetFrameHeightWithSpacing();
-                        ImGui.BeginChild("scrolling", new Num.Vector2(0, -footer1), false);
                         ImGui.Text("");
 
                         ImGui.Columns(3);
@@ -274,19 +274,12 @@ namespace DalamudPlugin
 
                         ImGui.Columns(1);
 
-                        if (ImGui.Button("Save and Close Config"))
-                        {
-                            SaveConfig();
 
-                            configWindow = false;
-                        }
-                        if (ImGui.IsItemHovered()) { ImGui.SetTooltip("Changes will only be saved for the current session unless you do this!"); }
-                        ImGui.EndChild();
                         ImGui.EndTabItem();
                     }
 
 
-                    if (ImGui.BeginTabItem("Colours"))
+                    if (ImGui.BeginTabItem("Channels"))
                     {
                         ImGui.Columns(4);
                         ImGui.Text("Example"); ImGui.NextColumn();
@@ -297,7 +290,7 @@ namespace DalamudPlugin
                         ImGui.ColorEdit4("Time Colour", ref timeColour, ImGuiColorEditFlags.NoInputs | ImGuiColorEditFlags.NoLabel); ImGui.NextColumn();
                         ImGui.Text(""); ImGui.NextColumn();
                         ImGui.Text(""); ImGui.NextColumn();
-                        ImGui.TextColored(nameColour, "Mr E"); ImGui.NextColumn();
+                        ImGui.TextColored(nameColour, "Player Names"); ImGui.NextColumn();
                         ImGui.ColorEdit4("Name Colour", ref nameColour, ImGuiColorEditFlags.NoInputs | ImGuiColorEditFlags.NoLabel); ImGui.NextColumn();
                         ImGui.Text(""); ImGui.NextColumn();
                         ImGui.Text(""); ImGui.NextColumn();
@@ -309,15 +302,6 @@ namespace DalamudPlugin
                             ImGui.ColorEdit4(Channels[i] + " Colour2", ref logColour[i], ImGuiColorEditFlags.NoInputs | ImGuiColorEditFlags.NoLabel); ImGui.NextColumn();
                         }
                         ImGui.Columns(1);
-
-                        if (ImGui.Button("Save and Close Config"))
-                        {
-                            SaveConfig();
-
-                            configWindow = false;
-                        }
-                        if (ImGui.IsItemHovered()) { ImGui.SetTooltip("Changes will only be saved for the current session unless you do this!"); }
-
                         ImGui.EndTabItem();
                     }
 
@@ -377,7 +361,7 @@ namespace DalamudPlugin
 
                         }
 
-
+                        ImGui.Separator();
                         foreach (var tab in items)
                         {
                             if (tab.Enabled)
@@ -455,20 +439,12 @@ namespace DalamudPlugin
                                     }
                                     ImGui.Columns(1);
                                     ImGui.EndChild();
+                                    ImGui.TreePop();
 
 
                                 }
                             }
                         }
-
-                        if (ImGui.Button("Save and Close Config"))
-                        {
-                            SaveConfig();
-
-                            configWindow = false;
-                        }
-                        if (ImGui.IsItemHovered()) { ImGui.SetTooltip("Changes will only be saved for the current session unless you do this!"); }
-
                         ImGui.EndTabItem();
                     }
 
@@ -490,15 +466,42 @@ namespace DalamudPlugin
                         ImGui.PopItemWidth();
                         ImGui.Text("");
                         ImGui.EndTabItem();
+
+                        ImGui.InputText("Yandex Key", ref yandex, 999);
+                        if (ImGui.IsItemHovered()) { ImGui.SetTooltip("Key to allow the translator to use the Yandex service"); }
+
+                        ImGui.Text("Translator");
+                        if (translator == 1)
+                        {
+                            ImGui.Text("[Google] is set.");
+                            if (ImGui.Button("Switch to Yandex"))
+                            {
+                                translator = 2;
+                            }
+                        }
+
+                        if (translator == 2)
+                        {
+                            ImGui.Text("[Yandex] is set.");
+                            if (ImGui.Button("Switch to Google"))
+                            {
+                                translator = 1;
+                            }
+                        }
+
                     }
 
                     if (ImGui.BeginTabItem("Font"))
                     {
                         ImGui.Columns(3);
-                        ImGui.InputInt("H Spacing", ref space_hor);
+                        ImGui.PushItemWidth(124);
+                        ImGui.InputInt("H Space", ref space_hor);
+                        ImGui.PopItemWidth();
                         if (ImGui.IsItemHovered()) { ImGui.SetTooltip("Horizontal spacing of chat text"); }
                         ImGui.NextColumn();
-                        ImGui.InputInt("V Spacing", ref space_ver);
+                        ImGui.PushItemWidth(124);
+                        ImGui.InputInt("V Space", ref space_ver);
+                        ImGui.PopItemWidth();
                         if (ImGui.IsItemHovered()) { ImGui.SetTooltip("Vertical spacing of cha text"); }
                         ImGui.NextColumn();
                         ImGui.Text("");
@@ -514,6 +517,15 @@ namespace DalamudPlugin
 
                 ImGui.EndTabBar();
                 ImGui.EndChild();
+
+                if (ImGui.Button("Save and Close Config"))
+                {
+                    SaveConfig();
+
+                    configWindow = false;
+                }
+                if (ImGui.IsItemHovered()) { ImGui.SetTooltip("Changes will only be saved for the current session unless you do this!"); }
+
 
                 //ImGui.PopFont();
             }

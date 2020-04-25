@@ -213,8 +213,14 @@ namespace DalamudPlugin
                 injectChat = false;
             }
 
+
             try
-            { translator = Configuration.Translator; }
+            {
+                if (Configuration.Translator.HasValue)
+                {
+                    translator = Configuration.Translator.Value;
+                }
+            }
             catch (Exception)
             {
                 PluginLog.LogError("Failed to Load Translator Choice!");
@@ -555,6 +561,8 @@ namespace DalamudPlugin
             {
                 PluginLog.Log("No Chan list to load");
             }
+
+            if (translator == 0) { translator = 1; }
 
             SaveConfig();
 
