@@ -122,23 +122,30 @@ namespace DalamudPlugin
 
         public void Wrap(String input)
         {
+            input = input.Replace("\n", " XXX ");
+            input = input.Replace("\r", " XXX ");
+
             String[] inputArray = input.Split(' ');
 
             int count = 0;
             foreach (String splits in inputArray)
             {
-                if (ImGui.GetContentRegionAvail().X - 5 - ImGui.CalcTextSize(splits).X < 0) { ImGui.Text(""); }
+                bool newline = false;
+                if (ImGui.GetContentRegionAvail().X - 5 - ImGui.CalcTextSize(splits).X < 0)
+                { ImGui.Text(""); }
 
-                ImGui.Text(splits);
+                if (splits == "XXX") { newline = true; PluginLog.Log("newline set to true"); }
+                else { ImGui.Text(splits.Trim()); }
+                
                 foreach (String word in high.highlights)
                 {
-                    string search = StripPunctuation(splits.ToLower());
-                    if (search == word) HighlightText();
+                    if (StripPunctuation(splits.ToLower()) == StripPunctuation(word.ToLower())) HighlightText();
                 }
 
                 if (count < (inputArray.Length - 1))
                 {
-                    ImGui.SameLine();
+                    if (!newline)
+                    { ImGui.SameLine(); }
                     count++;
                 }
             }
@@ -175,7 +182,7 @@ namespace DalamudPlugin
                 if (value >= 0) { return Array.IndexOf(Channels, type); }
                 else
                 {
-                    PluginLog.Log(type);
+                    //PluginLog.Log(type);
                     type = AddOnChannels(Int32.Parse(type.ToString()) & 127);
                     value = Array.IndexOf(Channels, type);
                     if (value >= 0) { return Array.IndexOf(Channels, type); }
