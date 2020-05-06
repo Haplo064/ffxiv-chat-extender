@@ -46,6 +46,10 @@ namespace DalamudPlugin
             public Num.Vector4 NameColour { get; set; }
             public Highlighter High { get; set; }
             public String[] Chan { get; set; }
+            public bool AllowTranslation { get; set; }
+            public Num.Vector4[] BubbleColour { get; set; }
+            public bool[] BubbleEnable { get; set; }
+            public bool BubblesWindow { get; set; }
         }
 
         public class TabBase
@@ -114,6 +118,7 @@ namespace DalamudPlugin
             public int htB = 255;
             public int htG = 255;
             public int htR = 255;
+            public uint colour;
         }
 
         public class ChatText
@@ -125,6 +130,24 @@ namespace DalamudPlugin
             public List<TextTypes> Text = new List<TextTypes>();
             public bool Selected;
             public int ChannelColour;
+            public DateTime DateTime;
+        }
+        
+        public class BubbleOffset
+        {
+            public int x = 0;
+            public int y = 0;
+            public Num.Vector2 Pos;
+            public float Width;
+            public float Height;
+            public string name;
+            public int extra;
+        }
+
+        public class BoundingBox
+        {
+            public Num.Vector2 min;
+            public Num.Vector2 max;
         }
 
         public class DynTab : TabBase
@@ -136,6 +159,24 @@ namespace DalamudPlugin
                 Enabled = enabled;
             }
 
+        }
+
+        enum Race
+        {
+            Hyur,
+            Elezen,
+            Lalafell,
+            Miqote,
+            Roegadyn,
+            AuRa,
+            Hrothgar,
+            Viera
+        }
+
+        enum Gender
+        {
+            Male,
+            Female
         }
 
     }

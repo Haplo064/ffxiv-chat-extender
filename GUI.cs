@@ -16,6 +16,7 @@ using System.Runtime.CompilerServices;
 using Dalamud.Configuration;
 using Num = System.Numerics;
 
+
 namespace DalamudPlugin
 {
     public partial class ChatExtenderPlugin : IDalamudPlugin
@@ -41,6 +42,7 @@ namespace DalamudPlugin
 
             if (chatWindow)
             {
+                //PluginLog.Log("FONT LOADED: " + font.IsLoaded().ToString());
                 if (flickback)
                 {
                     no_mouse = false;
@@ -226,9 +228,11 @@ namespace DalamudPlugin
                         ImGui.Checkbox("Show Chat Extender", ref chatWindow);
                         if (ImGui.IsItemHovered()) { ImGui.SetTooltip("Enable/Disable the Chat Extender"); }
                         ImGui.NextColumn();
-                        ImGui.Text("");
+                        ImGui.Checkbox("Enable Translations", ref allowTranslation);
+                        if (ImGui.IsItemHovered()) { ImGui.SetTooltip("Enable Translations from JPN to ENG"); }
                         ImGui.NextColumn();
-                        ImGui.Text("");
+                        ImGui.Checkbox("Chat Bubbles", ref bubblesWindow);
+                        if (ImGui.IsItemHovered()) { ImGui.SetTooltip("Enable Chat Bubbles"); }
                         ImGui.NextColumn();
 
                         ImGui.Checkbox("Scrollbar", ref no_scrollbar);
@@ -448,47 +452,49 @@ namespace DalamudPlugin
                         ImGui.EndTabItem();
                     }
 
-
-                    if (ImGui.BeginTabItem("Translator"))
+                    if (allowTranslation)
                     {
-                        ImGui.Checkbox("Inject Translation", ref injectChat);
-                        if (ImGui.IsItemHovered()) { ImGui.SetTooltip("Inject translated text into the normal FFXIV Chatbox"); }
-                        
-                        ImGui.Text("Surrounds of Translated text");
-                        ImGui.PushItemWidth(24);
-                        ImGui.InputText("##Left", ref lTr, 3); ImGui.SameLine();
-                        if (ImGui.IsItemHovered()) { ImGui.SetTooltip("Alter the characters on the left of Translated text"); }
-                        ImGui.PopItemWidth();
-                        ImGui.Text("Translation"); ImGui.SameLine();
-                        ImGui.PushItemWidth(24);
-                        ImGui.InputText("##Right", ref rTr, 3);
-                        if (ImGui.IsItemHovered()) { ImGui.SetTooltip("Alter the characters on the right of Translated text"); }
-                        ImGui.PopItemWidth();
-                        ImGui.Text("");
-                        ImGui.EndTabItem();
-
-                        ImGui.InputText("Yandex Key", ref yandex, 999);
-                        if (ImGui.IsItemHovered()) { ImGui.SetTooltip("Key to allow the translator to use the Yandex service"); }
-
-                        ImGui.Text("Translator");
-                        if (translator == 1)
+                        if (ImGui.BeginTabItem("Translator"))
                         {
-                            ImGui.Text("[Google] is set.");
-                            if (ImGui.Button("Switch to Yandex"))
-                            {
-                                translator = 2;
-                            }
-                        }
+                            ImGui.Checkbox("Inject Translation", ref injectChat);
+                            if (ImGui.IsItemHovered()) { ImGui.SetTooltip("Inject translated text into the normal FFXIV Chatbox"); }
 
-                        if (translator == 2)
-                        {
-                            ImGui.Text("[Yandex] is set.");
-                            if (ImGui.Button("Switch to Google"))
-                            {
-                                translator = 1;
-                            }
-                        }
+                            ImGui.Text("Surrounds of Translated text");
+                            ImGui.PushItemWidth(24);
+                            ImGui.InputText("##Left", ref lTr, 3); ImGui.SameLine();
+                            if (ImGui.IsItemHovered()) { ImGui.SetTooltip("Alter the characters on the left of Translated text"); }
+                            ImGui.PopItemWidth();
+                            ImGui.Text("Translation"); ImGui.SameLine();
+                            ImGui.PushItemWidth(24);
+                            ImGui.InputText("##Right", ref rTr, 3);
+                            if (ImGui.IsItemHovered()) { ImGui.SetTooltip("Alter the characters on the right of Translated text"); }
+                            ImGui.PopItemWidth();
+                            ImGui.Text("");
+                            ImGui.EndTabItem();
 
+                            ImGui.InputText("Yandex Key", ref yandex, 999);
+                            if (ImGui.IsItemHovered()) { ImGui.SetTooltip("Key to allow the translator to use the Yandex service"); }
+
+                            ImGui.Text("Translator");
+                            if (translator == 1)
+                            {
+                                ImGui.Text("[Google] is set.");
+                                if (ImGui.Button("Switch to Yandex"))
+                                {
+                                    translator = 2;
+                                }
+                            }
+
+                            if (translator == 2)
+                            {
+                                ImGui.Text("[Yandex] is set.");
+                                if (ImGui.Button("Switch to Google"))
+                                {
+                                    translator = 1;
+                                }
+                            }
+
+                        }
                     }
 
                     if (ImGui.BeginTabItem("Font"))
@@ -511,8 +517,36 @@ namespace DalamudPlugin
 
                         ImGui.EndTabItem();
                     }
-
-
+                    if (bubblesWindow)
+                    {
+                        if (ImGui.BeginTabItem("Bubbles"))
+                        {
+                            ImGui.Columns(3);
+                            //ImGui.Checkbox("Debug", ref drawDebug);
+                            ImGui.Checkbox("Displacement Up", ref boolUp); ImGui.NextColumn();
+                            //ImGui.InputFloat("MinH", ref minH);
+                            //ImGui.InputFloat("MaxH", ref maxH);
+                            ImGui.Checkbox("Show Channel", ref bubblesChannel); ImGui.NextColumn();
+                            ImGui.Text("");  ImGui.NextColumn();
+                            //ImGui.InputInt("X Disp", ref xDisp);
+                            //ImGui.InputInt("Y Disp", ref yDisp);
+                            //ImGui.InputInt("X Cut", ref xCut);
+                            //ImGui.InputInt("Y Cut", ref yCut);
+                            //ImGui.ColorEdit4("Bubble Colour", ref bubbleColor, ImGuiColorEditFlags.NoInputs | ImGuiColorEditFlags.NoLabel);
+                            //ImGui.InputFloat("Rounding", ref bubbleRounding);
+                            ImGui.Separator();
+                            ImGui.Text("Channel"); ImGui.NextColumn();
+                            ImGui.Text("Enabled"); ImGui.NextColumn();
+                            ImGui.Text("Colour"); ImGui.NextColumn();
+                            for (int i = 0; i < (Channels.Length); i++)
+                            {
+                                ImGui.Text(Channels[i]); ImGui.SameLine(); ImGui.NextColumn();
+                                ImGui.Checkbox("##" + Channels[i], ref bubbleEnable[i]); ImGui.NextColumn();
+                                ImGui.ColorEdit4(Channels[i] + " ColourBubble", ref bubbleColour[i], ImGuiColorEditFlags.NoInputs | ImGuiColorEditFlags.NoLabel); ImGui.NextColumn();
+                            }
+                            ImGui.Columns(1);
+                        }
+                    }
                 }
 
                 ImGui.EndTabBar();
@@ -526,10 +560,88 @@ namespace DalamudPlugin
                 }
                 if (ImGui.IsItemHovered()) { ImGui.SetTooltip("Changes will only be saved for the current session unless you do this!"); }
 
-
-                //ImGui.PopFont();
             }
         }
 
+        private void ChatBubbles()
+        {
+            if (bubblesWindow)
+            {
+
+                Dalamud.Game.ClientState.Actors.ActorTable actorTable = pluginInterface.ClientState.Actors;
+                List<Dalamud.Game.ClientState.Actors.Types.Chara> charaTable = new List<Dalamud.Game.ClientState.Actors.Types.Chara>();
+
+
+                for (var k = 0; k < this.pluginInterface.ClientState.Actors.Length; k++)
+                {
+                    var actor = this.pluginInterface.ClientState.Actors[k];
+
+                    if (actor == null)
+                        continue;
+
+                    if (actor is Dalamud.Game.ClientState.Actors.Types.NonPlayer.Npc npc)
+                    {
+
+                    }
+
+                    if (actor is Dalamud.Game.ClientState.Actors.Types.Chara chara)
+                    {
+                        
+                        if (drawDebug)
+                        {
+                            if (pluginInterface.Framework.Gui.WorldToScreen(new SharpDX.Vector3(actor.Position.X, actor.Position.Z + AddHeight(chara), actor.Position.Y), out SharpDX.Vector2 pos2))
+                            {
+
+                                ImGui.SetNextWindowPos(new Num.Vector2(pos2.X + 30, pos2.Y));
+                                ImGui.Begin(chara.Name + "Info", ImGuiWindowFlags.NoInputs | ImGuiWindowFlags.NoNav | ImGuiWindowFlags.NoTitleBar | ImGuiWindowFlags.NoScrollbar | ImGuiWindowFlags.AlwaysAutoResize);
+                                ImGui.Text(chara.Name);
+                                ImGui.Text("G: " + chara.Customize[(int)Dalamud.Game.ClientState.Actors.CustomizeIndex.Gender].ToString());
+                                ImGui.Text("R: " + chara.Customize[(int)Dalamud.Game.ClientState.Actors.CustomizeIndex.Race].ToString());
+                                ImGui.Text("H: " + chara.Customize[(int)Dalamud.Game.ClientState.Actors.CustomizeIndex.Height].ToString());
+                                ImGui.Text("A: " + AddHeight(chara).ToString());
+                                ImGui.Text(k.ToString());
+                                ImGui.End();
+                            }
+                        }
+
+                    }
+
+                    if (actor is Dalamud.Game.ClientState.Actors.Types.PlayerCharacter pc)
+                    {
+                        charaTable.Add((Dalamud.Game.ClientState.Actors.Types.PlayerCharacter)actor);
+                    }
+
+                    /*
+                    if (actor is Dalamud.Game.ClientState.Actors.Types.PartyMember pc2)
+                    {
+                        charaTable.Add((Dalamud.Game.ClientState.Actors.Types.PartyMember)actor);
+                    }
+                    */
+
+                }
+
+
+                foreach (Dalamud.Game.ClientState.Actors.Types.PlayerCharacter actor in charaTable)
+                {
+                    try
+                    {
+                        foreach (ChatText chat in chatBubble)
+                        {
+                            if (chat.Sender == actor.Name && chat.Sender.Length > 0)
+                            {
+                                DrawChatBubble(actor, chat);
+                            }
+                        }
+                    }
+                    catch (Exception e)
+                    {
+                        //Do nothing
+                    }
+                    CleanupBubbles();
+                }
+                
+                //ImGui.End();
+            }
+        }
     }
 }

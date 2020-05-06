@@ -15,6 +15,7 @@ using System.IO;
 using System.Runtime.CompilerServices;
 using Dalamud.Configuration;
 using Num = System.Numerics;
+using Dalamud.Interface;
 
 //TODO
 //https://github.com/Haplo064/ffxiv-chat-extender/projects/2
@@ -30,13 +31,20 @@ namespace DalamudPlugin
         private DalamudPluginInterface pluginInterface;
         private bool chatWindow = false;
         private bool configWindow = false;
+        private bool bubblesWindow = false;
         //Globals
+
+        float minH = 1.5f;
+        float maxH = 0.005f;
+
         public bool injectChat = false;
         public int translator = 1;         //1=Google,2=Yandex
         public string language = "jpn";
         public string yandex = "";
         public List<TabBase> items = new List<TabBase>();
         public List<TabBase> itemsTemp = new List<TabBase>();
+        public List<ChatText> chatBubble = new List<ChatText>();
+        public List<BubbleOffset> bubbleOffsets = new List<BubbleOffset>();
         public uint bufSize = 24;
         public string tempTitle = "Title";
         public string tempHigh = "words,to,highlight";
@@ -62,18 +70,52 @@ namespace DalamudPlugin
         static uint tab_ind_text;
         static uint tab_norm_text;
         static uint tab_sel_text;
+        static bool allowTranslation = false;
+        public ImFontPtr font;
+        public int noRepeats = 0;
 
         public Highlighter high = new Highlighter();
 
         static int space_hor = 4;
         static int space_ver = 0;
+        static int maxBubbleWidth = 500;
+        static bool drawDebug = false;
+        static bool boolUp = true;
+        static bool bubblesChannel = false;
+        static ImGuiScene.TextureWrap goatImage;
+
+        static Num.Vector2 bubble_TL1 = new Num.Vector2(0f  / 75f, 0f  / 75f);
+        static Num.Vector2 bubble_TL2 = new Num.Vector2(25f / 75f, 25f / 75f);
+        static Num.Vector2 bubble_TM1 = new Num.Vector2(25f / 75f, 0f  / 75f);
+        static Num.Vector2 bubble_TM2 = new Num.Vector2(50f / 75f, 25f / 75f);
+        static Num.Vector2 bubble_TR1 = new Num.Vector2(50f / 75f, 0f  / 75f);
+        static Num.Vector2 bubble_TR2 = new Num.Vector2(75f / 75f, 25f / 75f);
+
+        static Num.Vector2 bubble_ML1 = new Num.Vector2(0f  / 75f, 25f / 75f);
+        static Num.Vector2 bubble_ML2 = new Num.Vector2(25f / 75f, 50f / 75f);
+        static Num.Vector2 bubble_MM1 = new Num.Vector2(25f / 75f, 25f / 75f);
+        static Num.Vector2 bubble_MM2 = new Num.Vector2(50f / 75f, 50f / 75f);
+        static Num.Vector2 bubble_MR1 = new Num.Vector2(50f / 75f, 25f / 75f);
+        static Num.Vector2 bubble_MR2 = new Num.Vector2(75f / 75f, 50f / 75f);
+
+        static Num.Vector2 bubble_BL1 = new Num.Vector2(0f  / 75f, 50f / 75f);
+        static Num.Vector2 bubble_BL2 = new Num.Vector2(25f / 75f, 75f / 75f);
+        static Num.Vector2 bubble_BM1 = new Num.Vector2(25f / 75f, 50f / 75f);
+        static Num.Vector2 bubble_BM2 = new Num.Vector2(50f / 75f, 75f / 75f);
+        static Num.Vector2 bubble_BR1 = new Num.Vector2(50f / 75f, 50f / 75f);
+        static Num.Vector2 bubble_BR2 = new Num.Vector2(75f / 75f, 75f / 75f);
+
+        static int xDisp = 4;
+        static int xCut  = 0;
+        static int yDisp = 0;
+        static int yCut  = 0;
+
+        static float bubbleRounding = 20f;
 
         static string pathString = Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments) + @"\FFXIV_ChatExtender\Logs\";
         static string dllPath = Path.GetDirectoryName(System.Reflection.Assembly.GetExecutingAssembly().Location);
         static string fontFile = "FFXIV_Chat.ttf";
         static string fontPath = Path.Combine(dllPath, fontFile);
-
-        public ImFontPtr font = ImGui.GetIO().Fonts.AddFontFromFileTTF(fontPath, 18.0f);
 
         public Num.Vector4 timeColour = new Num.Vector4(255, 255, 255, 255);
         public Num.Vector4 nameColour = new Num.Vector4(255, 255, 255, 255);
@@ -110,6 +152,40 @@ namespace DalamudPlugin
                 new Num.Vector4(255,255,255,255),new Num.Vector4(255,255,255,255),new Num.Vector4(255,255,255,255),new Num.Vector4(255,255,255,255),new Num.Vector4(255,255,255,255),
                 new Num.Vector4(255,255,255,255),new Num.Vector4(255,255,255,255),new Num.Vector4(255,255,255,255),new Num.Vector4(255,255,255,255),new Num.Vector4(255,255,255,255),
                 new Num.Vector4(255,255,255,255),new Num.Vector4(255,255,255,255),new Num.Vector4(255,255,255,255),new Num.Vector4(255,255,255,255)
+        };
+
+        public Num.Vector4[] bubbleColour =
+        {
+                new Num.Vector4(0.866f,0.819f,0.761f,1f),new Num.Vector4(0.866f,0.819f,0.761f,1f),new Num.Vector4(0.866f,0.819f,0.761f,1f),new Num.Vector4(0.866f,0.819f,0.761f,1f),new Num.Vector4(0.866f,0.819f,0.761f,1f),
+                new Num.Vector4(0.866f,0.819f,0.761f,1f),new Num.Vector4(0.866f,0.819f,0.761f,1f),new Num.Vector4(0.866f,0.819f,0.761f,1f),new Num.Vector4(0.866f,0.819f,0.761f,1f),new Num.Vector4(0.866f,0.819f,0.761f,1f),
+                new Num.Vector4(0.866f,0.819f,0.761f,1f),new Num.Vector4(0.866f,0.819f,0.761f,1f),new Num.Vector4(0.866f,0.819f,0.761f,1f),new Num.Vector4(0.866f,0.819f,0.761f,1f),new Num.Vector4(0.866f,0.819f,0.761f,1f),
+                new Num.Vector4(0.866f,0.819f,0.761f,1f),new Num.Vector4(0.866f,0.819f,0.761f,1f),new Num.Vector4(0.866f,0.819f,0.761f,1f),new Num.Vector4(0.866f,0.819f,0.761f,1f),new Num.Vector4(0.866f,0.819f,0.761f,1f),
+                new Num.Vector4(0.866f,0.819f,0.761f,1f),new Num.Vector4(0.866f,0.819f,0.761f,1f),new Num.Vector4(0.866f,0.819f,0.761f,1f),new Num.Vector4(0.866f,0.819f,0.761f,1f),new Num.Vector4(0.866f,0.819f,0.761f,1f),
+                new Num.Vector4(0.866f,0.819f,0.761f,1f),new Num.Vector4(0.866f,0.819f,0.761f,1f),new Num.Vector4(0.866f,0.819f,0.761f,1f),new Num.Vector4(0.866f,0.819f,0.761f,1f),new Num.Vector4(0.866f,0.819f,0.761f,1f),
+                new Num.Vector4(0.866f,0.819f,0.761f,1f),new Num.Vector4(0.866f,0.819f,0.761f,1f),new Num.Vector4(0.866f,0.819f,0.761f,1f),new Num.Vector4(0.866f,0.819f,0.761f,1f),new Num.Vector4(0.866f,0.819f,0.761f,1f),
+                new Num.Vector4(0.866f,0.819f,0.761f,1f),new Num.Vector4(0.866f,0.819f,0.761f,1f),new Num.Vector4(0.866f,0.819f,0.761f,1f),new Num.Vector4(0.866f,0.819f,0.761f,1f),new Num.Vector4(0.866f,0.819f,0.761f,1f),
+                new Num.Vector4(0.866f,0.819f,0.761f,1f),new Num.Vector4(0.866f,0.819f,0.761f,1f),new Num.Vector4(0.866f,0.819f,0.761f,1f),new Num.Vector4(0.866f,0.819f,0.761f,1f),new Num.Vector4(0.866f,0.819f,0.761f,1f),
+                new Num.Vector4(0.866f,0.819f,0.761f,1f),new Num.Vector4(0.866f,0.819f,0.761f,1f),new Num.Vector4(0.866f,0.819f,0.761f,1f),new Num.Vector4(0.866f,0.819f,0.761f,1f),new Num.Vector4(0.866f,0.819f,0.761f,1f),
+                new Num.Vector4(0.866f,0.819f,0.761f,1f),new Num.Vector4(0.866f,0.819f,0.761f,1f),new Num.Vector4(0.866f,0.819f,0.761f,1f),new Num.Vector4(0.866f,0.819f,0.761f,1f),new Num.Vector4(0.866f,0.819f,0.761f,1f),
+                new Num.Vector4(0.866f,0.819f,0.761f,1f),new Num.Vector4(0.866f,0.819f,0.761f,1f),new Num.Vector4(0.866f,0.819f,0.761f,1f),new Num.Vector4(0.866f,0.819f,0.761f,1f),new Num.Vector4(0.866f,0.819f,0.761f,1f),
+                new Num.Vector4(0.866f,0.819f,0.761f,1f),new Num.Vector4(0.866f,0.819f,0.761f,1f),new Num.Vector4(0.866f,0.819f,0.761f,1f),new Num.Vector4(0.866f,0.819f,0.761f,1f)
+        };
+
+        public bool[] bubbleEnable =
+        {
+            true, true, true, true, true,
+            true, true, true, true, true,
+            true, true, true, true, true,
+            true, true, true, true, true,
+            true, true, true, true, true,
+            true, true, true, true, true,
+            true, true, true, true, true,
+            true, true, true, true, true,
+            true, true, true, true, true,
+            true, true, true, true, true,
+            true, true, true, true, true,
+            true, true, true, true, true,
+            true, true, true, true
         };
 
         public String[] Channels =
@@ -170,9 +246,16 @@ namespace DalamudPlugin
 
         public void Initialize(DalamudPluginInterface pluginInterface)
         {
+            font = ImGui.GetIO().Fonts.AddFontFromFileTTF(fontPath, 18.0f);
+            var imagePath = Path.Combine(Path.GetDirectoryName(System.Reflection.Assembly.GetExecutingAssembly().Location), @"Chat_Box_A.png");
+            goatImage = pluginInterface.UiBuilder.LoadImage(imagePath);
+
+
             // Initializing plugin, hooking into chat.
             this.pluginInterface = pluginInterface;
             Configuration = pluginInterface.GetPluginConfig() as ChatExtenderPluginConfiguration ?? new ChatExtenderPluginConfiguration();
+            
+
 
             tab_ind = UintCol(255, 50, 70, 50);
             tab_ind_text = UintCol(255, 150, 150, 150);
@@ -180,6 +263,22 @@ namespace DalamudPlugin
             tab_norm_text = UintCol(255, 150, 150, 150);
             tab_sel = UintCol(255, 90, 90, 90);
             tab_sel_text = UintCol(255, 250, 255, 255);
+
+            try
+            { allowTranslation = Configuration.AllowTranslation; }
+            catch (Exception)
+            {
+                PluginLog.LogError("Failed to Load Translation setting!");
+                allowTranslation = false;
+            }
+
+            try
+            { bubblesWindow = Configuration.BubblesWindow; }
+            catch (Exception)
+            {
+                PluginLog.LogError("Failed to Load BubbleWindow setting!");
+                bubblesWindow = false;
+            }
 
             try
             { rTr = Configuration.RTr.ToString(); }
@@ -201,9 +300,19 @@ namespace DalamudPlugin
             { PluginLog.LogError("No ChanColour to load!"); }
 
             try
+            { bubbleEnable = Configuration.BubbleEnable.ToArray(); }
+            catch (Exception)
+            { PluginLog.LogError("No BubbleEnable to load!"); }
+
+            try
             { logColour = Configuration.LogColour.ToArray(); }
             catch (Exception)
             { PluginLog.LogError("No LogColour to load!"); }
+
+            try
+            { bubbleColour = Configuration.BubbleColour.ToArray(); }
+            catch (Exception)
+            { PluginLog.LogError("No BubbleColour to load!"); }
 
             try
             { injectChat = Configuration.Inject; }
@@ -577,8 +686,8 @@ namespace DalamudPlugin
             this.pluginInterface.Framework.Gui.Chat.OnChatMessage += Chat_OnChatMessage;
             this.pluginInterface.UiBuilder.OnBuildUi += ChatUI;
             this.pluginInterface.UiBuilder.OnOpenConfigUi += Chat_ConfigWindow;
+            this.pluginInterface.UiBuilder.OnBuildUi += ChatBubbles;
 
-            //ImGui.GetIO().Fonts.Build();
         }
 
     }

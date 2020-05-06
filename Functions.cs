@@ -90,6 +90,8 @@ namespace DalamudPlugin
             return concat.Contains(find);
         }
 
+
+
         public void SaveConfig()
         {
             Configuration.Items = CopyAndStripItems(items);
@@ -112,6 +114,10 @@ namespace DalamudPlugin
             Configuration.Chan = Chan.ToArray();
             Configuration.YandexKey = yandex.ToString();
             Configuration.Translator = translator;
+            Configuration.AllowTranslation = allowTranslation;
+            Configuration.BubbleColour = bubbleColour.ToArray();
+            Configuration.BubbleEnable = bubbleEnable.ToArray();
+            Configuration.BubblesWindow = bubblesWindow;
             this.pluginInterface.SavePluginConfig(Configuration);
         }
 
@@ -123,7 +129,6 @@ namespace DalamudPlugin
         public void Wrap(String input)
         {
             input = input.Replace("\n", " XXX ");
-            input = input.Replace("\r", " XXX ");
 
             String[] inputArray = input.Split(' ');
 
@@ -136,7 +141,37 @@ namespace DalamudPlugin
 
                 if (splits == "XXX") { newline = true; PluginLog.Log("newline set to true"); }
                 else { ImGui.Text(splits.Trim()); }
-                
+
+                foreach (String word in high.highlights)
+                {
+                    if (StripPunctuation(splits.ToLower()) == StripPunctuation(word.ToLower())) HighlightText();
+                }
+
+                if (count < (inputArray.Length - 1))
+                {
+                    if (!newline)
+                    { ImGui.SameLine(); }
+                    count++;
+                }
+            }
+        }
+
+        public void WrapBubble(String input)
+        {
+            input = input.Replace("\n", " XXX ");
+
+            String[] inputArray = input.Split(' ');
+
+            int count = 0;
+            foreach (String splits in inputArray)
+            {
+                bool newline = false;
+                if (maxBubbleWidth - ImGui.GetContentRegionAvail().X - 5 - ImGui.CalcTextSize(splits).X < 0)
+                { ImGui.Text(""); }
+
+                if (splits == "XXX") { newline = true; PluginLog.Log("newline set to true"); }
+                else { ImGui.Text(splits.Trim()); }
+
                 foreach (String word in high.highlights)
                 {
                     if (StripPunctuation(splits.ToLower()) == StripPunctuation(word.ToLower())) HighlightText();
@@ -245,145 +280,131 @@ namespace DalamudPlugin
                     var senderName = sender.TextValue;
                     List<Payload> payloads = message.Payloads;
 
+                    //Moving here
+                    int chan = ConvertForArray(type.ToString());
+
+                    ChatText tmp = new ChatText();
+
+                    tmp.Time = GetTime();
+                    tmp.DateTime = DateTime.Now;
+                    tmp.ChannelShort = GetChannelName(type.ToString());
+                    try
+                    {
+                        tmp.Channel = Channels[chan].Trim().Replace(" ", "");
+                    }
+                    catch (Exception)
+                    {
+                        tmp.Channel = chan.ToString();
+                    }
+
+                    tmp.Sender = senderName;
+                    tmp.ChannelColour = ConvertForArray(type.ToString());
+                    List<TextTypes> rawtext = new List<TextTypes>();
+
+                    int replace = 0;
+                    Payload payloader = null;
+                    PayloadType payloadType = PayloadType.RawText;
+
+                    //Handling Emotes
+                    if (tmp.Channel == "StandardEmote")
+                    {
+                        tmp.Sender = "";
+                    }
+
+                    if (tmp.Channel == "CustomEmote")
+                    {
+                        tmp.Sender = "";
+                        TextTypes wrangle = new TextTypes();
+                        wrangle.Type = PayloadType.RawText;
+                        wrangle.Text = senderName;
+                        rawtext.Add(wrangle);
+                    }
+
+                    foreach (var payload in payloads)
+                    {
+                        if (payload.Type == PayloadType.MapLink)
+                        {
+                            replace = 2;
+                            payloadType = PayloadType.MapLink;
+                            payloader = payload;
+                        }
+
+                        if (payload.Type == PayloadType.RawText)
+                        {
+                            TextTypes wrangler = new TextTypes();
+                            wrangler.Text = payload.ToString().Split(new[] { ' ' }, 4)[3];
+
+                            if (replace == 1)
+                            {
+                                if (payloadType == PayloadType.MapLink)
+                                {
+                                    rawtext.RemoveAt(rawtext.Count - 1);
+                                    wrangler.Payload = payloader;
+                                }
+                            }
+
+                            if (replace == 0)
+                            {
+                                payloadType = PayloadType.RawText;
+                            }
+
+                            wrangler.Type = payloadType;
+                            rawtext.Add(wrangler);
+
+                            if (replace > 0)
+                            {
+                                replace--;
+                            }
+                        }
+                    }
+
+                    tmp.Text = rawtext;
+
+                    if (bubbleEnable[chan])
+                    {
+                        ChatBubbleAdd(tmp);
+                    }
+                    
+
 
                     foreach (var tab in items)
                     {
-                        int chan = ConvertForArray(type.ToString());
-                        if (chan < Channels.Length)
+                        if (chan < Channels.Length && tab.Logs[chan])
                         {
-                            if (tab.Logs[chan])
+                            tab.Chat.Add(tmp);
+                            tab.msg = true;
+
+                            if (tab.Chat.Count > 256)
+                            { tab.Chat.RemoveAt(0); }
+
+                            if (tab.Config[3])
                             {
-                                ChatText tmp = new ChatText();
+                                //Writing to file
+                                string filename = GetDate() + "_" + tab.Title + ".txt";
+                                if (!System.IO.Directory.Exists(pathString))
+                                { System.IO.Directory.CreateDirectory(pathString); }
 
-                                tmp.Time = GetTime();
-                                tmp.ChannelShort = GetChannelName(type.ToString());
-                                try
-                                {
-                                    tmp.Channel = Channels[chan].Trim().Replace(" ", "");
-                                }
-                                catch (Exception)
-                                {
-                                    tmp.Channel = chan.ToString();
-                                }
+                                if (!System.IO.File.Exists(pathString + filename))
+                                { System.IO.File.WriteAllText(pathString + filename, tab.Title + "\n"); }
 
-                                tmp.Sender = senderName;
-                                tmp.ChannelColour = ConvertForArray(type.ToString());
-                                List<TextTypes> rawtext = new List<TextTypes>();
-
-                                int replace = 0;
-                                Payload payloader = null;
-                                PayloadType payloadType = PayloadType.RawText;
-                                
-                                //Handling Emotes
-                                if(tmp.Channel== "StandardEmote")
-                                {
-                                    tmp.Sender = "";
-                                }
-
-                                if (tmp.Channel == "CustomEmote")
-                                {
-                                    tmp.Sender = "";
-                                    TextTypes wrangle = new TextTypes();
-                                    wrangle.Type = PayloadType.RawText;
-                                    wrangle.Text = senderName;
-                                    rawtext.Add(wrangle);
-                                }
-
-                                foreach (var payload in payloads)
-                                {
-                                    //if (payload.Type == PayloadType.AutoTranslateText) { texttype = 0; }
-                                    //if (payload.Type == PayloadType.Item) { texttype = 1; }
-                                    if (payload.Type == PayloadType.MapLink)
-                                    {
-                                        replace = 2;
-                                        payloadType = PayloadType.MapLink;
-                                        payloader = payload;
-                                    }
-                                    //if (payload.Type == PayloadType.Player) { texttype = 3; }
-                                    //if (payload.Type == PayloadType.RawText) { texttype = 4; }
-                                    //if (payload.Type == PayloadType.Status) { texttype = 5; }
-                                    //if (payload.Type == PayloadType.UIForeground) { texttype = 6; }
-                                    //if (payload.Type == PayloadType.UIGlow) { texttype = 7; }
-
-                                    if (payload.Type == PayloadType.RawText)
-                                    {
-                                        TextTypes wrangler = new TextTypes();
-                                        wrangler.Text = payload.ToString().Split(new[] { ' ' }, 4)[3];
-
-                                        if (replace == 1)
-                                        {
-                                            if (payloadType == PayloadType.MapLink)
-                                            {
-                                                rawtext.RemoveAt(rawtext.Count - 1);
-                                                wrangler.Payload = payloader;
-                                            }
-                                        }
-
-                                        if (replace == 0)
-                                        {
-                                            payloadType = PayloadType.RawText;
-                                        }
-
-                                        wrangler.Type = payloadType;
-                                        rawtext.Add(wrangler);
-
-                                        if (replace > 0)
-                                        {
-                                            replace--;
-                                        }
-                                    }
-
-                                    //PluginLog.Log(payload.ToString());
-
-                                }
-
-                                tmp.Text = rawtext;
-
-
-
-                                tab.Chat.Add(tmp);
-
-                                if (tab.Chat.Count > 256)
-                                {
-                                    tab.Chat.RemoveAt(0);
-                                }
-
-                                if (tab.Config[3])
-                                {
-                                    //Writing to file
-                                    string filename = GetDate() + "_" + tab.Title + ".txt";
-                                    if (!System.IO.Directory.Exists(pathString))
-                                    {
-                                        System.IO.Directory.CreateDirectory(pathString);
-                                    }
-
-                                    if (!System.IO.File.Exists(pathString + filename))
-                                    {
-                                        System.IO.File.WriteAllText(pathString + filename, tab.Title + "\n");
-                                    }
-
-                                    using (System.IO.StreamWriter file = new System.IO.StreamWriter(pathString + filename, true))
-                                    {
-                                        file.WriteLine(tmp.Time + "[" + tmp.Channel + "]" + "<" + tmp.Sender + ">:" + TextTypesToString(rawtext));
-                                    }
-                                }
-
-                                if (tab.AutoScroll == true)
-                                {
-                                    tab.Scroll = true;
-                                }
-                                tab.msg = true;
+                                using (System.IO.StreamWriter file = new System.IO.StreamWriter(pathString + filename, true))
+                                { file.WriteLine(tmp.Time + "[" + tmp.Channel + "]" + "<" + tmp.Sender + ">:" + TextTypesToString(rawtext)); }
                             }
+
+                            if (tab.AutoScroll == true)
+                            { tab.Scroll = true; }
                         }
                         else PluginLog.Log("[" + chan.ToString() + "] " + message.TextValue);
-
                     }
 
-                    String messageString = message.TextValue;
-                    String predictedLanguage = Lang(messageString);
-                    if (predictedLanguage == language)
+                    if (allowTranslation)
                     {
-                        Task.Run(() => Tran(type, messageString, senderName));
+                        String messageString = message.TextValue;
+                        String predictedLanguage = Lang(messageString);
+                        if (predictedLanguage == language)
+                        {
+                            Task.Run(() => Tran(type, messageString, senderName));
+                        }
                     }
                 }
             }
@@ -391,6 +412,7 @@ namespace DalamudPlugin
             {
                 PluginLog.LogError(e.ToString());
             }
+
         }
 
         public void Broadcast(string message)
@@ -535,6 +557,7 @@ namespace DalamudPlugin
             pluginInterface.CommandManager.RemoveHandler("/cht");
             this.pluginInterface.UiBuilder.OnBuildUi -= ChatUI;
             pluginInterface.UiBuilder.OnOpenConfigUi -= Chat_ConfigWindow;
+            goatImage.Dispose();
         }
 
         bool CheckDupe(List<TabBase> items, string title)
@@ -546,5 +569,283 @@ namespace DalamudPlugin
             return false;
         }
 
+        public void BuildImGuiFont()
+        {
+            PluginLog.Log("BEFORE CALL: " + font.IsLoaded().ToString());
+            //IntPtr x = ImGui.GetCurrentContext();
+            //ImGui.GetIO().Fonts.Build();
+            //ImGui.SetCurrentContext(x);
+            PluginLog.Log("AFTER CALL: " + font.IsLoaded().ToString());
+        }
+
+        public void ChatBubbleAdd(ChatText chatText)
+        {
+            for (int i = 0; i < chatBubble.Count; i++)
+            {
+                if (chatBubble[i].Sender == chatText.Sender)
+                {
+                    chatBubble[i] = chatText;
+                    bubbleOffsets[i].x = 0;
+                    bubbleOffsets[i].y = 0;
+                    bubbleOffsets[i].Width = 0;
+                    bubbleOffsets[i].Height = 0;
+                    bubbleOffsets[i].extra= noRepeats;
+                    noRepeats++;
+                    return;
+                }
+            }
+            BubbleOffset bubbleOffset = new BubbleOffset();
+            bubbleOffset.name = chatText.Sender.ToString();
+            bubbleOffset.extra = noRepeats;
+            noRepeats++;
+
+            chatBubble.Add(chatText);
+            bubbleOffsets.Add(bubbleOffset);
+        }
+
+        public void DrawChatBubble(Dalamud.Game.ClientState.Actors.Types.Chara actor, ChatText chat)
+        {
+            if (pluginInterface.Framework.Gui.WorldToScreen(new SharpDX.Vector3(actor.Position.X, actor.Position.Z + AddHeight(actor), actor.Position.Y), out SharpDX.Vector2 pos))
+            {
+
+                int lookup = GetChatPos(actor.Name);
+
+                String[] senderSplit = chat.Sender.Split(' ');
+                string senderName = senderSplit[0] + " " + senderSplit[1];
+                
+                ImGui.PushStyleVar(ImGuiStyleVar.WindowMinSize, new Num.Vector2(ImGui.CalcTextSize(senderName).X + 50 ,20));
+                ImGui.Begin(chat.Sender + bubbleOffsets[lookup].extra.ToString(), ImGuiWindowFlags.NoInputs | ImGuiWindowFlags.NoNav | ImGuiWindowFlags.NoTitleBar | ImGuiWindowFlags.NoScrollbar | ImGuiWindowFlags.AlwaysAutoResize | ImGuiWindowFlags.NoBackground);
+                ImGui.SetWindowPos(new Num.Vector2(pos.X + 30 + bubbleOffsets[lookup].x, pos.Y + bubbleOffsets[lookup].y));
+                
+                ImGui.PushStyleColor(ImGuiCol.Text, UintCol(0, 0, 0, 0));
+                if (bubblesChannel)
+                {
+                    ImGui.Text(chat.ChannelShort + ": "); ImGui.SameLine();
+                }
+                string message = TextTypesToString(chat.Text);
+
+                
+                ImGui.PushTextWrapPos(maxBubbleWidth);
+                ImGui.TextWrapped(message);
+                ImGui.PopTextWrapPos();
+                ImGui.PopStyleColor();
+                ImGui.PopStyleVar();
+                              
+
+
+
+                bubbleOffsets[lookup].Pos = ImGui.GetWindowPos();
+                bubbleOffsets[lookup].Width = ImGui.GetWindowWidth();
+                bubbleOffsets[lookup].Height = ImGui.GetWindowHeight();
+
+                resolveCollision(lookup, pos, true);
+                Num.Vector2 finalpos = ImGui.GetWindowPos();
+
+                ImGui.End();
+
+
+
+                //WIP
+                float ImageWidth  = 12.5f * ((bubbleOffsets[lookup].Width  - 25f) / 12.5f) - xCut;
+                float ImageHeight = 12.5f * ((bubbleOffsets[lookup].Height - 25f) / 12.5f) - yCut;
+                //uint colour = ImGui.GetColorU32(new Num.Vector4(255, 255, 255, 255));
+
+
+                ImGui.PushStyleVar(ImGuiStyleVar.WindowMinSize, new Num.Vector2(ImGui.CalcTextSize(senderName).X + 50, 20));
+                ImGui.Begin(chat.Sender + "visible" + bubbleOffsets[lookup].extra.ToString(), ImGuiWindowFlags.NoInputs | ImGuiWindowFlags.NoNav | ImGuiWindowFlags.NoTitleBar | ImGuiWindowFlags.NoScrollbar | ImGuiWindowFlags.AlwaysAutoResize | ImGuiWindowFlags.NoBackground);
+                ImGui.SetWindowPos(new Num.Vector2(pos.X + 30 + bubbleOffsets[lookup].x, pos.Y + bubbleOffsets[lookup].y));
+
+                //Draw Box
+                ImGui.SetCursorScreenPos(new Num.Vector2(finalpos.X + xDisp, finalpos.Y + yDisp));
+                //ImGui.GetWindowDrawList().AddRectFilled(new Num.Vector2(finalpos.X + xDisp, finalpos.Y + yDisp), new Num.Vector2(finalpos.X + xDisp + 25f + ImageWidth, finalpos.Y + 25f + ImageHeight + yDisp), UintCol(high.htA, high.htB, high.htG, high.htR), bubbleRounding);
+                ImGui.GetWindowDrawList().AddRectFilled(new Num.Vector2(finalpos.X + xDisp, finalpos.Y + yDisp), new Num.Vector2(finalpos.X + xDisp + 25f + ImageWidth, finalpos.Y + 25f + ImageHeight + yDisp), ImGui.GetColorU32(bubbleColour[chat.ChannelColour]), bubbleRounding);
+                //Draw Outside
+                //Top Left of Box (Set size)
+                ImGui.SetCursorScreenPos(new Num.Vector2(finalpos.X + xDisp, finalpos.Y + yDisp));
+                ImGui.Image(goatImage.ImGuiHandle, new Num.Vector2(12.5f, 12.5f), bubble_TL1, bubble_TL2);
+                //Top Middle of Box (Variable Width)
+                ImGui.SetCursorScreenPos(new Num.Vector2(finalpos.X + xDisp + 12.5f, finalpos.Y + yDisp));
+                ImGui.Image(goatImage.ImGuiHandle, new Num.Vector2(ImageWidth, 12.5f), bubble_TM1, bubble_TM2);
+                //Top Right of Box (Set Size)
+                ImGui.SetCursorScreenPos(new Num.Vector2(finalpos.X + xDisp + 12.5f + ImageWidth, finalpos.Y + yDisp));
+                ImGui.Image(goatImage.ImGuiHandle, new Num.Vector2(12.5f, 12.5f), bubble_TR1, bubble_TR2);
+                //Mid Left of Box (Variable Hight)
+                ImGui.SetCursorScreenPos(new Num.Vector2(finalpos.X + xDisp, finalpos.Y + 12.5f + yDisp));
+                ImGui.Image(goatImage.ImGuiHandle, new Num.Vector2(12.5f, ImageHeight), bubble_ML1, bubble_ML2);
+                //Mid Middle of Box (Variable Width and Height)
+                ImGui.SetCursorScreenPos(new Num.Vector2(finalpos.X + xDisp + 12.5f, finalpos.Y +12.5f + yDisp));
+                ImGui.Image(goatImage.ImGuiHandle, new Num.Vector2(ImageWidth, ImageHeight), bubble_MM1, bubble_MM2);
+                //Mid Right of Box (Variable Height)
+                ImGui.SetCursorScreenPos(new Num.Vector2(finalpos.X + xDisp + 12.5f + ImageWidth, finalpos.Y + 12.5f + yDisp));
+                ImGui.Image(goatImage.ImGuiHandle, new Num.Vector2(12.5f, ImageHeight), bubble_MR1, bubble_MR2);
+                //Bot Left of Box (Set Size)
+                ImGui.SetCursorScreenPos(new Num.Vector2(finalpos.X + xDisp, finalpos.Y + 12.5f + ImageHeight + yDisp));
+                ImGui.Image(goatImage.ImGuiHandle, new Num.Vector2(12.5f, 12.5f), bubble_BL1, bubble_BL2);
+                //Bot Middle of Box (Variable Width)
+                ImGui.SetCursorScreenPos(new Num.Vector2(finalpos.X + xDisp + 12.5f, finalpos.Y + 12.5f + ImageHeight + yDisp));
+                ImGui.Image(goatImage.ImGuiHandle, new Num.Vector2(ImageWidth, 12.5f), bubble_BM1, bubble_BM2);
+                //Bot Right of Box (Set Size)
+                ImGui.SetCursorScreenPos(new Num.Vector2(finalpos.X + xDisp + 12.5f + ImageWidth, finalpos.Y + 12.5f + ImageHeight + yDisp));
+                ImGui.Image(goatImage.ImGuiHandle, new Num.Vector2(12.5f, 12.5f), bubble_BR1, bubble_BR2);
+
+
+                ImGui.SetCursorScreenPos(new Num.Vector2(finalpos.X + 12, finalpos.Y+6));
+
+                ImGui.PushStyleColor(ImGuiCol.Text, UintCol(255, 0, 0, 0));
+                if (bubblesChannel)
+                {
+                    ImGui.Text(chat.ChannelShort + ": "); ImGui.SameLine();
+                }
+                
+                
+                ImGui.PushTextWrapPos(maxBubbleWidth);
+                ImGui.TextWrapped(message); ImGui.SameLine(); ImGui.Text(" ");
+                ImGui.PopTextWrapPos();
+                ImGui.PopStyleColor();
+
+
+                ImGui.PopStyleVar();
+                ImGui.End();
+
+                ImGui.Begin(chat.Sender + "Name" + bubbleOffsets[lookup].extra.ToString(), ImGuiWindowFlags.NoInputs | ImGuiWindowFlags.NoNav | ImGuiWindowFlags.NoTitleBar | ImGuiWindowFlags.NoScrollbar | ImGuiWindowFlags.AlwaysAutoResize | ImGuiWindowFlags.NoBackground);
+                
+                ImGui.SetWindowPos(new Num.Vector2(finalpos.X+5,finalpos.Y-18));
+
+                ImGui.PushStyleColor(ImGuiCol.Text, UintCol(255,0,0,0));
+                finalpos = ImGui.GetCursorPos();
+                ImGui.SetCursorPos(new Num.Vector2(finalpos.X + 1, finalpos.Y + 1));
+                ImGui.Text(chat.Sender);
+                ImGui.PopStyleColor();
+
+                ImGui.SetCursorPos(finalpos);
+                ImGui.Text(chat.Sender);
+                ImGui.End();
+            }
+
+
+        }
+
+        public void resolveCollision(int lookup, SharpDX.Vector2 pos, bool reset)
+        {
+            for (int i = 0; i < bubbleOffsets.Count; i++)
+            {
+                BoundingBox boundingBoxA = new BoundingBox();
+                BoundingBox boundingBoxB = new BoundingBox();
+
+                bool collision = false;
+                if (bubbleOffsets[lookup].y != 0 && reset)
+                {
+                    for (int j = 0; j < bubbleOffsets.Count; j++)
+                    {
+
+                        if (j != lookup)
+                        {
+                            boundingBoxA.min = new Num.Vector2(pos.X + 25, pos.Y - 5);
+                            boundingBoxA.max = new Num.Vector2(pos.X + 35 + ImGui.GetWindowWidth(), pos.Y + ImGui.GetWindowHeight() + 5);
+
+                            boundingBoxB.min = bubbleOffsets[j].Pos;
+                            boundingBoxB.max = new Num.Vector2(bubbleOffsets[j].Pos.X + bubbleOffsets[j].Width, bubbleOffsets[j].Pos.Y + bubbleOffsets[j].Height);
+
+                            if (isCollision(boundingBoxA, boundingBoxB))
+                            {
+                                collision = true;
+                            }
+                        }
+                    }
+                    if (!collision)
+                    {
+                        bubbleOffsets[lookup].y = 0;
+                        PluginLog.Log("Resetting position of: " + lookup.ToString());
+                        ImGui.SetWindowPos(new Num.Vector2(pos.X + 30 + bubbleOffsets[lookup].x, pos.Y + bubbleOffsets[lookup].y));
+                    }
+                }
+
+
+
+                if (i != lookup)
+                {
+                    
+                    boundingBoxA.min = ImGui.GetWindowPos();
+                    boundingBoxA.max = new Num.Vector2(ImGui.GetWindowPos().X + ImGui.GetWindowWidth(), ImGui.GetWindowPos().Y + ImGui.GetWindowHeight());
+
+                    
+                    boundingBoxB.min = bubbleOffsets[i].Pos;
+                    boundingBoxB.max = new Num.Vector2(bubbleOffsets[i].Pos.X + bubbleOffsets[i].Width, bubbleOffsets[i].Pos.Y + bubbleOffsets[i].Height);
+
+                    if (isCollision(boundingBoxA, boundingBoxB))
+                    {
+                        if (boolUp) { bubbleOffsets[lookup].y = bubbleOffsets[lookup].y + (int)(boundingBoxB.min.Y - boundingBoxA.min.Y - (bubbleOffsets[lookup].Height)) - 10; }
+                        else { bubbleOffsets[lookup].y = bubbleOffsets[lookup].y + Math.Abs((int)(boundingBoxA.min.Y - boundingBoxB.min.Y - (bubbleOffsets[lookup].Height))) + 10; }
+                        
+                        ImGui.SetWindowPos(new Num.Vector2(pos.X + 30 + bubbleOffsets[lookup].x, pos.Y + bubbleOffsets[lookup].y));
+                        PluginLog.Log("Resolving crash\n" +lookup.ToString()+" hit "+i.ToString()+"\n"+"Y: " + bubbleOffsets[lookup].y.ToString());
+                        resolveCollision(lookup, pos, false);
+                    }
+
+
+
+                }
+            }
+        }
+
+        bool isCollision(BoundingBox a, BoundingBox b)
+        {
+            // Exit with no intersection if found separated along an axis
+            if (a.min.X < b.min.X || a.min.X > b.max.X) return false;
+            if (a.max.Y < b.min.Y || a.min.Y > b.max.Y) return false;
+
+            // No separating axis found, therefor there is at least one overlapping axis
+            return true;
+        }
+
+        public int GetChatPos(string name)
+        {
+            int x = 0;
+            foreach(BubbleOffset bubble in bubbleOffsets)
+            {
+                if(bubble.name == name) { break; }
+                x++;
+            }
+            return x;
+        }
+
+        public void CleanupBubbles()
+        {
+            for (int i = 0; i < chatBubble.Count; i++)
+            {
+                if ((DateTime.Now - chatBubble[i].DateTime).TotalSeconds > 15)
+                {
+                    chatBubble.RemoveAt(i);
+                    bubbleOffsets.RemoveAt(i);
+                    i--;
+                }
+            }
+        }
+
+        public float AddHeight(Dalamud.Game.ClientState.Actors.Types.Chara chara)
+        {
+            float Height = chara.Customize[(int)Dalamud.Game.ClientState.Actors.CustomizeIndex.Height];
+            int race = chara.Customize[(int)Dalamud.Game.ClientState.Actors.CustomizeIndex.Race];
+            int gender = chara.Customize[(int)Dalamud.Game.ClientState.Actors.CustomizeIndex.Gender];
+
+            switch ((Race)race)
+            {
+                case Race.Hyur:     return 1.50f + 0.002f * Height;
+                case Race.Elezen:   return 1.80f + 0.002f * Height;
+                case Race.Lalafell: return 1.00f + 0.001f * Height;
+                case Race.Miqote:   return 1.45f + 0.003f * Height;
+                case Race.Roegadyn: return 2.00f + 0.001f * Height;
+                case Race.AuRa:
+                    if(gender == (int)Gender.Male)
+                                    return 2.00f + 0.001f * Height; 
+                    else 
+                                    return 1.40f + 0.001f * Height;
+                case Race.Hrothgar: return 1.85f + 0.002f * Height;
+                case Race.Viera:    return 1.75f + 0.002f * Height;
+            }
+            return minH + maxH * Height;
+
+
+        }
     }
 }
