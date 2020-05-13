@@ -23,6 +23,9 @@
     <AssemblyVersion>2.0.1.0</AssemblyVersion>
     <FileVersion>2.0.1.0</FileVersion>
   </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|AnyCPU'">
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+  </PropertyGroup>
   <ItemGroup>
     <PackageReference Include="GoogleTranslateFreeApi" Version="1.1.1" />
     <PackageReference Include="IvanAkcheurov.NTextCat.Lib" Version="0.2.1.1" />

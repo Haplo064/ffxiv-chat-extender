@@ -13,6 +13,7 @@ using ImGuiNET;
 using GoogleTranslateFreeApi;
 using System.IO;
 using System.Runtime.CompilerServices;
+using System.Runtime.InteropServices;
 using Dalamud.Configuration;
 using Num = System.Numerics;
 
@@ -20,20 +21,53 @@ namespace DalamudPlugin
 {
     public partial class ChatExtenderPlugin : IDalamudPlugin
     {
-        private void AddFont()
+        private unsafe void AddFont()
         {
             string fontFile = "XIVfree.ttf";
             string fontPath = Path.Combine(dllPath, fontFile);
 
-            font = ImGui.GetIO().Fonts.AddFontFromFileTTF(fontPath, (float)fontsize);
+            ImFontConfigPtr fontConfig = ImGuiNative.ImFontConfig_ImFontConfig();
+            fontConfig.MergeMode = true;
+            fontConfig.PixelSnapH = true;
+
+            var gameRangeHandle = GCHandle.Alloc(new ushort[]
+            {
+                0xE016,
+                0xE0DB,
+                0
+            }, GCHandleType.Pinned);
+
+            var gameRangeHandle2 = GCHandle.Alloc(new ushort[]
+            {
+                0x2013,
+                0x27BF,
+                0
+            }, GCHandleType.Pinned);
+
+
+            font = ImGui.GetIO().Fonts.AddFontFromFileTTF(fontPath, (float)fontsize, fontConfig);
+            ImGui.GetIO().Fonts.AddFontFromFileTTF(fontPath, (float)fontsize, fontConfig, gameRangeHandle.AddrOfPinnedObject());
+            ImGui.GetIO().Fonts.AddFontFromFileTTF(fontPath, (float)fontsize, fontConfig, gameRangeHandle2.AddrOfPinnedObject());
         }
 
-        private void UpdateFont()
+        private unsafe void UpdateFont()
         {
             string fontFile = "XIVfree.ttf";
             string fontPath = Path.Combine(dllPath, fontFile);
 
-            font = ImGui.GetIO().Fonts.AddFontFromFileTTF(fontPath, (float)fontsize);
+            ImFontConfigPtr fontConfig = ImGuiNative.ImFontConfig_ImFontConfig();
+            fontConfig.MergeMode = true;
+            fontConfig.PixelSnapH = true;
+
+            var gameRangeHandle = GCHandle.Alloc(new ushort[]
+            {
+                0xE016,
+                0xE0DB,
+                0
+            }, GCHandleType.Pinned);
+
+            font = ImGui.GetIO().Fonts.AddFontFromFileTTF(fontPath, (float)fontsize, fontConfig);
+            ImGui.GetIO().Fonts.AddFontFromFileTTF(fontPath, (float)fontsize, fontConfig, gameRangeHandle.AddrOfPinnedObject());
             pluginInterface.UiBuilder.RebuildFonts();
             skipfont=true;
         }
