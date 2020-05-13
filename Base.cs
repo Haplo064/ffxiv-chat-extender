@@ -16,6 +16,7 @@ using System.Runtime.CompilerServices;
 using Dalamud.Configuration;
 using Num = System.Numerics;
 using Dalamud.Interface;
+using System.Runtime.InteropServices;
 
 //TODO
 //https://github.com/Haplo064/ffxiv-chat-extender/projects/2
@@ -32,6 +33,7 @@ namespace DalamudPlugin
         private bool chatWindow = false;
         private bool configWindow = false;
         private bool bubblesWindow = false;
+        private bool hideWithChat = true;
         //Globals
 
         float minH = 1.5f;
@@ -49,6 +51,8 @@ namespace DalamudPlugin
         public string tempTitle = "Title";
         public string tempHigh = "words,to,highlight";
         public float alpha = 0.2f;
+        public int fontsize = 15;
+        public bool skipfont = false;
 
         public string lTr = "<<";
         public string rTr = ">>";
@@ -83,6 +87,7 @@ namespace DalamudPlugin
         static bool boolUp = true;
         static bool bubblesChannel = false;
         static ImGuiScene.TextureWrap goatImage;
+        static bool overrideChat = false;
 
         static Num.Vector2 bubble_TL1 = new Num.Vector2(0f  / 75f, 0f  / 75f);
         static Num.Vector2 bubble_TL2 = new Num.Vector2(25f / 75f, 25f / 75f);
@@ -114,8 +119,7 @@ namespace DalamudPlugin
 
         static string pathString = Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments) + @"\FFXIV_ChatExtender\Logs\";
         static string dllPath = Path.GetDirectoryName(System.Reflection.Assembly.GetExecutingAssembly().Location);
-        static string fontFile = "FFXIV_Chat.ttf";
-        static string fontPath = Path.Combine(dllPath, fontFile);
+
 
         public Num.Vector4 timeColour = new Num.Vector4(255, 255, 255, 255);
         public Num.Vector4 nameColour = new Num.Vector4(255, 255, 255, 255);
@@ -233,6 +237,34 @@ namespace DalamudPlugin
 
         public ChatExtenderPluginConfiguration Configuration;
 
+
+        //FFXIV Chat Box stuff
+        [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
+        private delegate IntPtr GetBaseUIObjDelegate();
+        private GetBaseUIObjDelegate getBaseUIObj;
+        
+        [UnmanagedFunctionPointer(CallingConvention.ThisCall, CharSet = CharSet.Ansi)]
+        private delegate IntPtr GetUI2ObjByNameDelegate(IntPtr getBaseUIObj, string UIName, int index);
+        private GetUI2ObjByNameDelegate getUI2ObjByName;
+
+
+
+        public IntPtr scan1;
+        public IntPtr scan2;
+
+        public IntPtr chatLog;
+        public IntPtr chatLogStuff;
+        public IntPtr chatLogPanel_0;
+
+        public float[] chatLogPosition;
+        public int Width = 0;
+        public int Height = 0;
+        public byte Alpha = 0;
+        public byte BoxHide = 0;
+        public byte BoxOn = 50;
+        public byte BoxOff = 82;
+
+
         public static string AssemblyDirectory
         {
             get
@@ -246,7 +278,6 @@ namespace DalamudPlugin
 
         public void Initialize(DalamudPluginInterface pluginInterface)
         {
-            font = ImGui.GetIO().Fonts.AddFontFromFileTTF(fontPath, 18.0f);
             var imagePath = Path.Combine(Path.GetDirectoryName(System.Reflection.Assembly.GetExecutingAssembly().Location), @"Chat_Box_A.png");
             goatImage = pluginInterface.UiBuilder.LoadImage(imagePath);
 
@@ -254,8 +285,17 @@ namespace DalamudPlugin
             // Initializing plugin, hooking into chat.
             this.pluginInterface = pluginInterface;
             Configuration = pluginInterface.GetPluginConfig() as ChatExtenderPluginConfiguration ?? new ChatExtenderPluginConfiguration();
-            
 
+            //Hooks for FFXIV ChatBox
+            scan1 = pluginInterface.TargetModuleScanner.ScanText("E8 ?? ?? ?? ?? 41 b8 01 00 00 00 48 8d 15 ?? ?? ?? ?? 48 8b 48 20 e8 ?? ?? ?? ?? 48 8b cf");
+            scan2 = pluginInterface.TargetModuleScanner.ScanText("e8 ?? ?? ?? ?? 48 8b cf 48 89 87 ?? ?? 00 00 e8 ?? ?? ?? ?? 41 b8 01 00 00 00");
+
+            getBaseUIObj = Marshal.GetDelegateForFunctionPointer<GetBaseUIObjDelegate>(scan1);
+            getUI2ObjByName = Marshal.GetDelegateForFunctionPointer<GetUI2ObjByNameDelegate>(scan2);
+            chatLog = getUI2ObjByName(Marshal.ReadIntPtr(getBaseUIObj(), 0x20), "ChatLog", 1);
+            chatLogStuff = getUI2ObjByName(Marshal.ReadIntPtr(getBaseUIObj(), 0x20), "ChatLog", 1);
+            chatLogPanel_0 = getUI2ObjByName(Marshal.ReadIntPtr(getBaseUIObj(), 0x20), "ChatLog", 1);
+            chatLogPosition = new float[2];
 
             tab_ind = UintCol(255, 50, 70, 50);
             tab_ind_text = UintCol(255, 150, 150, 150);
@@ -334,6 +374,19 @@ namespace DalamudPlugin
             {
                 PluginLog.LogError("Failed to Load Translator Choice!");
                 translator = 1;
+            }
+
+            try
+            {
+                if (Configuration.FontSize.HasValue)
+                {
+                    fontsize = Configuration.FontSize.Value;
+                }
+            }
+            catch (Exception)
+            {
+                PluginLog.LogError("Failed to Load Font Size!");
+                fontsize = 15;
             }
 
             try
@@ -687,7 +740,8 @@ namespace DalamudPlugin
             this.pluginInterface.UiBuilder.OnBuildUi += ChatUI;
             this.pluginInterface.UiBuilder.OnOpenConfigUi += Chat_ConfigWindow;
             this.pluginInterface.UiBuilder.OnBuildUi += ChatBubbles;
-
+            this.pluginInterface.UiBuilder.OnBuildFonts += AddFont;
+            this.pluginInterface.UiBuilder.RebuildFonts();
         }
 
     }

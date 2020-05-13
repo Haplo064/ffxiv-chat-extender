@@ -20,6 +20,24 @@ namespace DalamudPlugin
 {
     public partial class ChatExtenderPlugin : IDalamudPlugin
     {
+        private void AddFont()
+        {
+            string fontFile = "XIVfree.ttf";
+            string fontPath = Path.Combine(dllPath, fontFile);
+
+            font = ImGui.GetIO().Fonts.AddFontFromFileTTF(fontPath, (float)fontsize);
+        }
+
+        private void UpdateFont()
+        {
+            string fontFile = "XIVfree.ttf";
+            string fontPath = Path.Combine(dllPath, fontFile);
+
+            font = ImGui.GetIO().Fonts.AddFontFromFileTTF(fontPath, (float)fontsize);
+            pluginInterface.UiBuilder.RebuildFonts();
+            skipfont=true;
+        }
+        
 
         private void Chat_ConfigWindow(object Sender, EventArgs args)
         {
@@ -118,6 +136,7 @@ namespace DalamudPlugin
             Configuration.BubbleColour = bubbleColour.ToArray();
             Configuration.BubbleEnable = bubbleEnable.ToArray();
             Configuration.BubblesWindow = bubblesWindow;
+            Configuration.FontSize = fontsize;
             this.pluginInterface.SavePluginConfig(Configuration);
         }
 
@@ -139,7 +158,10 @@ namespace DalamudPlugin
                 if (ImGui.GetContentRegionAvail().X - 5 - ImGui.CalcTextSize(splits).X < 0)
                 { ImGui.Text(""); }
 
-                if (splits == "XXX") { newline = true; PluginLog.Log("newline set to true"); }
+                if (splits == "XXX")
+                {   
+                    newline = true; //PluginLog.Log("newline set to true");
+                }
                 else { ImGui.Text(splits.Trim()); }
 
                 foreach (String word in high.highlights)
@@ -169,7 +191,10 @@ namespace DalamudPlugin
                 if (maxBubbleWidth - ImGui.GetContentRegionAvail().X - 5 - ImGui.CalcTextSize(splits).X < 0)
                 { ImGui.Text(""); }
 
-                if (splits == "XXX") { newline = true; PluginLog.Log("newline set to true"); }
+                if (splits == "XXX") 
+                {
+                    newline = true; //PluginLog.Log("newline set to true"); 
+                }
                 else { ImGui.Text(splits.Trim()); }
 
                 foreach (String word in high.highlights)
@@ -279,15 +304,17 @@ namespace DalamudPlugin
                 {
                     var senderName = sender.TextValue;
                     List<Payload> payloads = message.Payloads;
-
-                    //Moving here
                     int chan = ConvertForArray(type.ToString());
-
                     ChatText tmp = new ChatText();
 
                     tmp.Time = GetTime();
                     tmp.DateTime = DateTime.Now;
                     tmp.ChannelShort = GetChannelName(type.ToString());
+                    tmp.SenderId = senderId;
+
+                    //PluginLog.Log(senderId.ToString());
+                    //PluginLog.Log(senderName);
+
                     try
                     {
                         tmp.Channel = Channels[chan].Trim().Replace(" ", "");
@@ -359,7 +386,12 @@ namespace DalamudPlugin
                     }
 
                     tmp.Text = rawtext;
-
+                    
+                    if(System.Text.RegularExpressions.Regex.Match(tmp.Sender, "^[-]").Success)
+                    {
+                        tmp.Sender = tmp.Sender.Substring(1);
+                    }
+                    
                     if (bubbleEnable[chan])
                     {
                         ChatBubbleAdd(tmp);
@@ -394,7 +426,7 @@ namespace DalamudPlugin
                             if (tab.AutoScroll == true)
                             { tab.Scroll = true; }
                         }
-                        else PluginLog.Log("[" + chan.ToString() + "] " + message.TextValue);
+                        else { }//PluginLog.Log("[" + chan.ToString() + "] " + message.TextValue);
                     }
 
                     if (allowTranslation)
@@ -558,6 +590,7 @@ namespace DalamudPlugin
             this.pluginInterface.UiBuilder.OnBuildUi -= ChatUI;
             pluginInterface.UiBuilder.OnOpenConfigUi -= Chat_ConfigWindow;
             goatImage.Dispose();
+            this.pluginInterface.UiBuilder.OnBuildFonts -= AddFont;
         }
 
         bool CheckDupe(List<TabBase> items, string title)
@@ -689,7 +722,7 @@ namespace DalamudPlugin
                 ImGui.Image(goatImage.ImGuiHandle, new Num.Vector2(12.5f, 12.5f), bubble_BR1, bubble_BR2);
 
 
-                ImGui.SetCursorScreenPos(new Num.Vector2(finalpos.X + 12, finalpos.Y+6));
+                ImGui.SetCursorScreenPos(new Num.Vector2(finalpos.X + 12, finalpos.Y+ 6 + ((ImGui.GetFontSize() - 15) / 3)));
 
                 ImGui.PushStyleColor(ImGuiCol.Text, UintCol(255, 0, 0, 0));
                 if (bubblesChannel)
@@ -712,14 +745,25 @@ namespace DalamudPlugin
                 ImGui.SetWindowPos(new Num.Vector2(finalpos.X+5,finalpos.Y-18));
 
                 ImGui.PushStyleColor(ImGuiCol.Text, UintCol(255,0,0,0));
-                finalpos = ImGui.GetCursorPos();
-                ImGui.SetCursorPos(new Num.Vector2(finalpos.X + 1, finalpos.Y + 1));
+                Num.Vector2 finalpos2 = ImGui.GetCursorPos();
+                ImGui.SetCursorPos(new Num.Vector2(finalpos2.X + 1, finalpos2.Y + 1 - ((ImGui.GetFontSize() - 15) / 3)));
                 ImGui.Text(chat.Sender);
                 ImGui.PopStyleColor();
-
-                ImGui.SetCursorPos(finalpos);
+                ImGui.SetCursorPos(new Num.Vector2(finalpos2.X, finalpos2.Y - ((ImGui.GetFontSize() - 15) / 3)));
                 ImGui.Text(chat.Sender);
                 ImGui.End();
+
+                /* Working on indicator
+                ImGui.Begin(chat.Sender + "Arrow" + bubbleOffsets[lookup].extra.ToString(), ImGuiWindowFlags.NoInputs | ImGuiWindowFlags.NoNav | ImGuiWindowFlags.NoTitleBar | ImGuiWindowFlags.NoScrollbar | ImGuiWindowFlags.AlwaysAutoResize);
+                ImGui.GetWindowDrawList().AddTriangle(
+                    new Num.Vector2(10, 10),
+                    new Num.Vector2(10, 50),
+                    new Num.Vector2(50, 50),
+                    ImGui.GetColorU32(bubbleColour[chat.ChannelColour]),
+                    2.0f
+                    );
+                ImGui.End();
+                */
             }
 
 
@@ -755,7 +799,7 @@ namespace DalamudPlugin
                     if (!collision)
                     {
                         bubbleOffsets[lookup].y = 0;
-                        PluginLog.Log("Resetting position of: " + lookup.ToString());
+                        //PluginLog.Log("Resetting position of: " + lookup.ToString());
                         ImGui.SetWindowPos(new Num.Vector2(pos.X + 30 + bubbleOffsets[lookup].x, pos.Y + bubbleOffsets[lookup].y));
                     }
                 }
@@ -778,7 +822,7 @@ namespace DalamudPlugin
                         else { bubbleOffsets[lookup].y = bubbleOffsets[lookup].y + Math.Abs((int)(boundingBoxA.min.Y - boundingBoxB.min.Y - (bubbleOffsets[lookup].Height))) + 10; }
                         
                         ImGui.SetWindowPos(new Num.Vector2(pos.X + 30 + bubbleOffsets[lookup].x, pos.Y + bubbleOffsets[lookup].y));
-                        PluginLog.Log("Resolving crash\n" +lookup.ToString()+" hit "+i.ToString()+"\n"+"Y: " + bubbleOffsets[lookup].y.ToString());
+                        //PluginLog.Log("Resolving crash\n" +lookup.ToString()+" hit "+i.ToString()+"\n"+"Y: " + bubbleOffsets[lookup].y.ToString());
                         resolveCollision(lookup, pos, false);
                     }
 

@@ -50,6 +50,7 @@ namespace DalamudPlugin
             public Num.Vector4[] BubbleColour { get; set; }
             public bool[] BubbleEnable { get; set; }
             public bool BubblesWindow { get; set; }
+            public int? FontSize { get; set; }
         }
 
         public class TabBase
@@ -131,6 +132,7 @@ namespace DalamudPlugin
             public bool Selected;
             public int ChannelColour;
             public DateTime DateTime;
+            public uint SenderId;
         }
         
         public class BubbleOffset
