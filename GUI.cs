@@ -22,9 +22,39 @@ namespace DalamudPlugin
 {
     public partial class ChatExtenderPlugin : IDalamudPlugin
     {
-
         private void ChatUI()
         {
+            if (nulled)
+            {
+                sleep--;
+                if (sleep > 0) { return; }
+
+                scan1 = pluginInterface.TargetModuleScanner.ScanText("E8 ?? ?? ?? ?? 41 b8 01 00 00 00 48 8d 15 ?? ?? ?? ?? 48 8b 48 20 e8 ?? ?? ?? ?? 48 8b cf");
+                scan2 = pluginInterface.TargetModuleScanner.ScanText("e8 ?? ?? ?? ?? 48 8b cf 48 89 87 ?? ?? 00 00 e8 ?? ?? ?? ?? 41 b8 01 00 00 00");
+
+                getBaseUIObj = Marshal.GetDelegateForFunctionPointer<GetBaseUIObjDelegate>(scan1);
+                getUI2ObjByName = Marshal.GetDelegateForFunctionPointer<GetUI2ObjByNameDelegate>(scan2);
+                chatLog = getUI2ObjByName(Marshal.ReadIntPtr(getBaseUIObj(), 0x20), "ChatLog", 1);
+
+                if (chatLog != IntPtr.Zero)
+                {
+                    chatLogPanel_0 = getUI2ObjByName(Marshal.ReadIntPtr(getBaseUIObj(), 0x20), "ChatLogPanel_0", 1);
+                    chatLogStuff = Marshal.ReadIntPtr(chatLog, 0xc8);
+                }
+
+            }
+
+            if (pluginInterface.ClientState.LocalPlayer == null)
+            {
+                sleep = 1000;
+                nulled = true;
+                return;
+            }
+            else
+            {
+                nulled = false;
+            }
+
             ImGuiWindowFlags chat_window_flags = 0;
             ImGuiWindowFlags chat_sub_window_flags = 0;
             if (no_titlebar) chat_window_flags |= ImGuiWindowFlags.NoTitleBar;
@@ -40,7 +70,7 @@ namespace DalamudPlugin
 
 
             //otherwise update all the values
-            if (chatLogStuff.ToString() != "0")
+            if (chatLogStuff != IntPtr.Zero)
             {
                 var chatLogProperties = Marshal.ReadIntPtr(chatLog, 0xC8);
                 Marshal.Copy(chatLogProperties + 0x44, chatLogPosition, 0, 2);
@@ -53,8 +83,7 @@ namespace DalamudPlugin
             else
             {
                 chatLog = getUI2ObjByName(Marshal.ReadIntPtr(getBaseUIObj(), 0x20), "ChatLog", 1);
-                
-                if (chatLog.ToString() != "0")
+                if (chatLog != IntPtr.Zero)
                 {
                     chatLogPanel_0 = getUI2ObjByName(Marshal.ReadIntPtr(getBaseUIObj(), 0x20), "ChatLogPanel_0", 1);
                     chatLogStuff = Marshal.ReadIntPtr(chatLog, 0xc8);
@@ -274,9 +303,8 @@ namespace DalamudPlugin
                         if (ImGui.IsItemHovered()) { ImGui.SetTooltip("Enable Chat Bubbles"); }
                         ImGui.NextColumn();
 
-                        //ImGui.Checkbox("Override FFXIV Chat", ref overrideChat);
-                        //if (ImGui.IsItemHovered()) { ImGui.SetTooltip("I'm the Captain now."); }
-                        ImGui.Text("");
+                        ImGui.Checkbox("24 Hour Time", ref hourTime);
+                        if (ImGui.IsItemHovered()) { ImGui.SetTooltip("Switch to 24 Hour (Military) time."); }
                         ImGui.NextColumn();
 
                         //ImGui.Checkbox("Hide with FFXIV Chat", ref hideWithChat);
@@ -659,9 +687,15 @@ namespace DalamudPlugin
                                     //ImGui.Text("A: " + AddHeight(chara).ToString());
                                     //ImGui.Text(k.ToString());
                                     ImGui.Text(actor.ActorId.ToString());
+                                    ImGui.Text(actor.Address.ToString("X"));
                                     ImGui.End();
                                 }
+
+                                ImGui.Begin("XXX", ImGuiWindowFlags.NoScrollbar | ImGuiWindowFlags.AlwaysAutoResize);
+                                ImGui.Text(pluginInterface.ClientState.LocalPlayer.Address.ToString("X"));
+                                ImGui.End();
                             }
+
 
                         }
 

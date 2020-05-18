@@ -53,6 +53,7 @@ namespace DalamudPlugin
         public float alpha = 0.2f;
         public int fontsize = 15;
         public bool skipfont = false;
+        public bool nulled = false;
 
         public string lTr = "<<";
         public string rTr = ">>";
@@ -77,6 +78,7 @@ namespace DalamudPlugin
         static bool allowTranslation = false;
         public ImFontPtr font;
         public int noRepeats = 0;
+        public bool hourTime = false;
 
         public Highlighter high = new Highlighter();
 
@@ -263,6 +265,7 @@ namespace DalamudPlugin
         public byte BoxHide = 0;
         public byte BoxOn = 50;
         public byte BoxOff = 82;
+        public int sleep = 0;
 
 
         public static string AssemblyDirectory
@@ -317,6 +320,14 @@ namespace DalamudPlugin
             catch (Exception)
             {
                 PluginLog.LogError("Failed to Load BubbleWindow setting!");
+                bubblesWindow = false;
+            }
+
+            try
+            { hourTime = Configuration.HourTime; }
+            catch (Exception)
+            {
+                PluginLog.LogError("Failed to Load Hour Time Config!");
                 bubblesWindow = false;
             }
 

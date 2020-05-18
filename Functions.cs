@@ -171,6 +171,7 @@ namespace DalamudPlugin
             Configuration.BubbleEnable = bubbleEnable.ToArray();
             Configuration.BubblesWindow = bubblesWindow;
             Configuration.FontSize = fontsize;
+            Configuration.HourTime = hourTime;
             this.pluginInterface.SavePluginConfig(Configuration);
         }
 
@@ -534,8 +535,16 @@ namespace DalamudPlugin
         public string GetTime()
         {
             string temp = "[";
-            if (DateTime.Now.ToString("%h").Length == 1) { temp += "0"; }
-            temp += DateTime.Now.ToString("%h" + ":");
+            if (hourTime)
+            {
+                if (DateTime.Now.ToString("%H").Length == 1) { temp += "0"; }
+                temp += DateTime.Now.ToString("%H" + ":");
+            }    
+            else
+            {
+                if (DateTime.Now.ToString("%h").Length == 1) { temp += "0"; }
+                temp += DateTime.Now.ToString("%h" + ":");
+            }
             if (DateTime.Now.ToString("%m").Length == 1) { temp += "0"; }
             temp += DateTime.Now.ToString("%m" + "]");
             return temp;
