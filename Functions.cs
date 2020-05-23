@@ -16,6 +16,7 @@ using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using Dalamud.Configuration;
 using Num = System.Numerics;
+using System.Reflection;
 
 namespace DalamudPlugin
 {
@@ -28,26 +29,33 @@ namespace DalamudPlugin
 
             ImFontConfigPtr fontConfig = ImGuiNative.ImFontConfig_ImFontConfig();
             fontConfig.MergeMode = true;
-            fontConfig.PixelSnapH = true;
+            fontConfig.PixelSnapH = false;
 
             var gameRangeHandle = GCHandle.Alloc(new ushort[]
             {
                 0xE016,
-                0xE0DB,
+                0xf739,
                 0
             }, GCHandleType.Pinned);
 
             var gameRangeHandle2 = GCHandle.Alloc(new ushort[]
             {
                 0x2013,
-                0x27BF,
+                0x303D,
                 0
             }, GCHandleType.Pinned);
 
-
+            var fontPathJp = Path.Combine( Directory.GetParent(Directory.GetParent(Directory.GetParent(dllPath).ToString()).ToString()).ToString(), "addon", "Hooks", "UIRes", "NotoSansCJKjp-Medium.otf");
+            
             font = ImGui.GetIO().Fonts.AddFontFromFileTTF(fontPath, (float)fontsize, fontConfig);
             ImGui.GetIO().Fonts.AddFontFromFileTTF(fontPath, (float)fontsize, fontConfig, gameRangeHandle.AddrOfPinnedObject());
             ImGui.GetIO().Fonts.AddFontFromFileTTF(fontPath, (float)fontsize, fontConfig, gameRangeHandle2.AddrOfPinnedObject());
+            ImGui.GetIO().Fonts.AddFontFromFileTTF(fontPathJp, (float)fontsize, fontConfig, ImGui.GetIO().Fonts.GetGlyphRangesJapanese());
+
+
+            fontConfig.Destroy();
+            gameRangeHandle.Free();
+            gameRangeHandle2.Free();
         }
 
         private unsafe void UpdateFont()
@@ -57,17 +65,34 @@ namespace DalamudPlugin
 
             ImFontConfigPtr fontConfig = ImGuiNative.ImFontConfig_ImFontConfig();
             fontConfig.MergeMode = true;
-            fontConfig.PixelSnapH = true;
+            fontConfig.PixelSnapH = false;
 
             var gameRangeHandle = GCHandle.Alloc(new ushort[]
             {
                 0xE016,
-                0xE0DB,
+                0xf739,
                 0
             }, GCHandleType.Pinned);
 
+            var gameRangeHandle2 = GCHandle.Alloc(new ushort[]
+            {
+                0x2013,
+                0x303D,
+                0
+            }, GCHandleType.Pinned);
+
+            var fontPathJp = Path.Combine(Directory.GetParent(Directory.GetParent(Directory.GetParent(dllPath).ToString()).ToString()).ToString(), "addon", "Hooks", "UIRes", "NotoSansCJKjp-Medium.otf");
+
             font = ImGui.GetIO().Fonts.AddFontFromFileTTF(fontPath, (float)fontsize, fontConfig);
             ImGui.GetIO().Fonts.AddFontFromFileTTF(fontPath, (float)fontsize, fontConfig, gameRangeHandle.AddrOfPinnedObject());
+            ImGui.GetIO().Fonts.AddFontFromFileTTF(fontPath, (float)fontsize, fontConfig, gameRangeHandle2.AddrOfPinnedObject());
+            ImGui.GetIO().Fonts.AddFontFromFileTTF(fontPathJp, (float)fontsize, fontConfig, ImGui.GetIO().Fonts.GetGlyphRangesJapanese());
+
+
+            fontConfig.Destroy();
+            gameRangeHandle.Free();
+            gameRangeHandle2.Free();
+
             pluginInterface.UiBuilder.RebuildFonts();
             skipfont=true;
         }
@@ -172,12 +197,28 @@ namespace DalamudPlugin
             Configuration.BubblesWindow = bubblesWindow;
             Configuration.FontSize = fontsize;
             Configuration.HourTime = hourTime;
+            Configuration.FontShadow = fontShadow;
+            Configuration.BubbleTime = bubbleTime;
             this.pluginInterface.SavePluginConfig(Configuration);
         }
 
         public void HighlightText()
         {
             ImGui.GetWindowDrawList().AddRectFilled(ImGui.GetItemRectMin(), ImGui.GetItemRectMax(), UintCol(high.htA, high.htB, high.htG, high.htR), 2.0f);
+        }
+
+        public void ShadowFont(string input)
+        {
+
+            var cur_pos = ImGui.GetCursorPos();
+            ImGui.PushStyleColor(ImGuiCol.Text, UintCol(255, 0, 0, 0));
+            ImGui.SetCursorPos(new Num.Vector2(cur_pos.X - 1, cur_pos.Y - 1)); ImGui.Text(input);
+            ImGui.SetCursorPos(new Num.Vector2(cur_pos.X - 1, cur_pos.Y + 1)); ImGui.Text(input);
+            ImGui.SetCursorPos(new Num.Vector2(cur_pos.X + 1, cur_pos.Y + 1)); ImGui.Text(input);
+            ImGui.SetCursorPos(new Num.Vector2(cur_pos.X + 1, cur_pos.Y - 1)); ImGui.Text(input);
+            ImGui.PopStyleColor();
+            ImGui.SetCursorPos(cur_pos);
+
         }
 
         public void Wrap(String input)
@@ -195,42 +236,24 @@ namespace DalamudPlugin
 
                 if (splits == "XXX")
                 {   
-                    newline = true; //PluginLog.Log("newline set to true");
+                    newline = true;
                 }
-                else { ImGui.Text(splits.Trim()); }
-
-                foreach (String word in high.highlights)
+                else
                 {
-                    if (StripPunctuation(splits.ToLower()) == StripPunctuation(word.ToLower())) HighlightText();
+                    if (fontShadow)
+                    {
+                        var cur_pos = ImGui.GetCursorPos();
+                        ImGui.PushStyleColor(ImGuiCol.Text, UintCol(255, 0, 0, 0));
+                        ImGui.SetCursorPos(new Num.Vector2(cur_pos.X - 1, cur_pos.Y - 1)); ImGui.Text(splits.Trim());
+                        ImGui.SetCursorPos(new Num.Vector2(cur_pos.X - 1, cur_pos.Y + 1)); ImGui.Text(splits.Trim());
+                        ImGui.SetCursorPos(new Num.Vector2(cur_pos.X + 1, cur_pos.Y + 1)); ImGui.Text(splits.Trim());
+                        ImGui.SetCursorPos(new Num.Vector2(cur_pos.X + 1, cur_pos.Y - 1)); ImGui.Text(splits.Trim());
+                        ImGui.PopStyleColor();
+                        ImGui.SetCursorPos(cur_pos);
+                    }
+                    ImGui.Text(splits.Trim());
+                    
                 }
-
-                if (count < (inputArray.Length - 1))
-                {
-                    if (!newline)
-                    { ImGui.SameLine(); }
-                    count++;
-                }
-            }
-        }
-
-        public void WrapBubble(String input)
-        {
-            input = input.Replace("\n", " XXX ");
-
-            String[] inputArray = input.Split(' ');
-
-            int count = 0;
-            foreach (String splits in inputArray)
-            {
-                bool newline = false;
-                if (maxBubbleWidth - ImGui.GetContentRegionAvail().X - 5 - ImGui.CalcTextSize(splits).X < 0)
-                { ImGui.Text(""); }
-
-                if (splits == "XXX") 
-                {
-                    newline = true; //PluginLog.Log("newline set to true"); 
-                }
-                else { ImGui.Text(splits.Trim()); }
 
                 foreach (String word in high.highlights)
                 {
@@ -361,6 +384,7 @@ namespace DalamudPlugin
 
                     tmp.Sender = senderName;
                     tmp.ChannelColour = ConvertForArray(type.ToString());
+
                     List<TextTypes> rawtext = new List<TextTypes>();
 
                     int replace = 0;
@@ -381,6 +405,24 @@ namespace DalamudPlugin
                         wrangle.Text = senderName;
                         rawtext.Add(wrangle);
                     }
+                    //Handling Tells
+                    if (tmp.Channel == "TellOutgoing")
+                    {
+                        TextTypes wrangle = new TextTypes();
+                        wrangle.Type = PayloadType.RawText;
+                        wrangle.Text = ">>" + tmp.Sender + ":";
+                        rawtext.Add(wrangle);
+                        tmp.Sender = pluginInterface.ClientState.LocalPlayer.Name.ToString();
+
+                    }
+                    if (tmp.Channel == "TellIncoming")
+                    {
+                        TextTypes wrangle = new TextTypes();
+                        wrangle.Type = PayloadType.RawText;
+                        wrangle.Text = ">>";
+                        rawtext.Add(wrangle);
+                    }
+
 
                     foreach (var payload in payloads)
                     {
@@ -900,7 +942,7 @@ namespace DalamudPlugin
         {
             for (int i = 0; i < chatBubble.Count; i++)
             {
-                if ((DateTime.Now - chatBubble[i].DateTime).TotalSeconds > 15)
+                if ((DateTime.Now - chatBubble[i].DateTime).TotalSeconds > bubbleTime)
                 {
                     chatBubble.RemoveAt(i);
                     bubbleOffsets.RemoveAt(i);

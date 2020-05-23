@@ -90,6 +90,7 @@ namespace DalamudPlugin
         static bool bubblesChannel = false;
         static ImGuiScene.TextureWrap goatImage;
         static bool overrideChat = false;
+        static int bubbleTime = 15;
 
         static Num.Vector2 bubble_TL1 = new Num.Vector2(0f  / 75f, 0f  / 75f);
         static Num.Vector2 bubble_TL2 = new Num.Vector2(25f / 75f, 25f / 75f);
@@ -116,6 +117,7 @@ namespace DalamudPlugin
         static int xCut  = 0;
         static int yDisp = 0;
         static int yCut  = 0;
+        public bool fontShadow = false;
 
         static float bubbleRounding = 20f;
 
@@ -373,6 +375,26 @@ namespace DalamudPlugin
                 injectChat = false;
             }
 
+            try
+            { fontShadow = Configuration.FontShadow; }
+            catch (Exception)
+            {
+                PluginLog.LogError("Failed to Load Font Shadow!");
+                fontShadow = false;
+            }
+
+            try
+            {
+                if (Configuration.BubbleTime.HasValue)
+                {
+                    bubbleTime = Configuration.BubbleTime.Value;
+                }
+            }
+            catch (Exception)
+            {
+                PluginLog.LogError("Failed to Load BubbleTime!");
+                bubbleTime = 15;
+            }
 
             try
             {

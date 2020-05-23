@@ -52,6 +52,8 @@ namespace DalamudPlugin
             public bool BubblesWindow { get; set; }
             public int? FontSize { get; set; }
             public bool HourTime { get; set; }
+            public bool FontShadow { get; set; }
+            public int? BubbleTime { get; set; }
         }
 
         public class TabBase

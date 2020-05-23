@@ -46,14 +46,20 @@ namespace DalamudPlugin
 
             if (pluginInterface.ClientState.LocalPlayer == null)
             {
-                sleep = 1000;
-                nulled = true;
-                return;
+                if(getUI2ObjByName(Marshal.ReadIntPtr(getBaseUIObj(), 0x20), "ChatLog", 1) == IntPtr.Zero)
+                {
+                    sleep = 1000;
+                    nulled = true;
+                }
+                
+
             }
             else
             {
                 nulled = false;
             }
+
+            if (nulled) { return; }
 
             ImGuiWindowFlags chat_window_flags = 0;
             ImGuiWindowFlags chat_sub_window_flags = 0;
@@ -162,9 +168,21 @@ namespace DalamudPlugin
                                             {
                                                 if (ContainsText(line.Text, tab.Filter))
                                                 {
-                                                    if (tab.Config[0]) { ImGui.TextColored(timeColour, line.Time + " "); ImGui.SameLine(); }
-                                                    if (tab.Config[1] && tab.Chans[ConvertForArray(line.Channel)]) { ImGui.TextColored(chanColour[ConvertForArray(line.Channel)], line.ChannelShort + " "); ImGui.SameLine(); }
-                                                    if (line.Sender.Length > 0) { ImGui.TextColored(nameColour, line.Sender + ":"); ImGui.SameLine(); }
+                                                    if (tab.Config[0])
+                                                    {
+                                                        if (fontShadow){ShadowFont(line.Time + " ");}
+                                                        ImGui.TextColored(timeColour, line.Time + " "); ImGui.SameLine();
+                                                    }
+                                                    if (tab.Config[1] && tab.Chans[ConvertForArray(line.Channel)]) 
+                                                    {
+                                                        if (fontShadow) { ShadowFont(line.ChannelShort + " "); }
+                                                        ImGui.TextColored(chanColour[ConvertForArray(line.Channel)], line.ChannelShort + " "); ImGui.SameLine();
+                                                    }
+                                                    if (line.Sender.Length > 0)
+                                                    {
+                                                        if (fontShadow) { ShadowFont(line.Sender + ":"); }
+                                                        ImGui.TextColored(nameColour, line.Sender + ":"); ImGui.SameLine();
+                                                    }
 
                                                     int count = 0;
                                                     foreach (TextTypes textTypes in line.Text)
@@ -195,9 +213,21 @@ namespace DalamudPlugin
                                             }
                                             else
                                             {
-                                                if (tab.Config[0]) { ImGui.TextColored(timeColour, line.Time + " "); ImGui.SameLine(); }
-                                                if (tab.Config[1] && tab.Chans[ConvertForArray(line.Channel)]) { ImGui.TextColored(chanColour[ConvertForArray(line.Channel)], line.ChannelShort + " "); ImGui.SameLine(); }
-                                                if (line.Sender.Length > 0) { ImGui.TextColored(nameColour, line.Sender + ":"); ImGui.SameLine(); }
+                                                if (tab.Config[0])
+                                                {
+                                                    if (fontShadow) { ShadowFont(line.Time + " "); }
+                                                    ImGui.TextColored(timeColour, line.Time + " "); ImGui.SameLine();
+                                                }
+                                                if (tab.Config[1] && tab.Chans[ConvertForArray(line.Channel)])
+                                                {
+                                                    if (fontShadow) { ShadowFont(line.ChannelShort + " "); }
+                                                    ImGui.TextColored(chanColour[ConvertForArray(line.Channel)], line.ChannelShort + " "); ImGui.SameLine();
+                                                }
+                                                if (line.Sender.Length > 0)
+                                                {
+                                                    if (fontShadow) { ShadowFont(line.Sender + ":"); }
+                                                    ImGui.TextColored(nameColour, line.Sender + ":"); ImGui.SameLine();
+                                                }
 
                                                 int count = 0;
                                                 foreach (TextTypes textTypes in line.Text)
@@ -572,6 +602,7 @@ namespace DalamudPlugin
                                     translator = 1;
                                 }
                             }
+                            ImGui.EndTabItem();
 
                         }
                     }
@@ -592,12 +623,15 @@ namespace DalamudPlugin
                         ImGui.Text("");
                         ImGui.NextColumn();
                         ImGui.Columns(1);
+                        ImGui.PushItemWidth(124);
                         ImGui.InputInt("Font Size", ref fontsize); ImGui.SameLine();
+                        ImGui.PopItemWidth();
                         if (ImGui.SmallButton("Apply"))
                         {
                             UpdateFont();
                         }
-
+                        ImGui.Checkbox("Font Shadow", ref fontShadow);
+                        if (ImGui.IsItemHovered()) { ImGui.SetTooltip("WARNING! This is a large tax on processing.\nIf you encounter slowdown, disable this!"); }
                         ImGui.EndTabItem();
                     }
                     if (bubblesWindow)
@@ -607,10 +641,15 @@ namespace DalamudPlugin
                             ImGui.Columns(3);
                             //ImGui.Checkbox("Debug", ref drawDebug);
                             ImGui.Checkbox("Displacement Up", ref boolUp); ImGui.NextColumn();
+                            if (ImGui.IsItemHovered()) { ImGui.SetTooltip("When bubbles collide, move the newest one Up instead of Down."); }
                             //ImGui.InputFloat("MinH", ref minH);
                             //ImGui.InputFloat("MaxH", ref maxH);
                             ImGui.Checkbox("Show Channel", ref bubblesChannel); ImGui.NextColumn();
-                            ImGui.Text("");  ImGui.NextColumn();
+                            if (ImGui.IsItemHovered()) { ImGui.SetTooltip("Show Channel in the bubble."); }
+                            ImGui.PushItemWidth(80);
+                            ImGui.InputInt("Duration", ref bubbleTime);
+                            ImGui.PopItemWidth(); ImGui.NextColumn();
+                            if (ImGui.IsItemHovered()) { ImGui.SetTooltip("Seconds the bubbles exist for."); }
                             //ImGui.InputInt("X Disp", ref xDisp);
                             //ImGui.InputInt("Y Disp", ref yDisp);
                             //ImGui.InputInt("X Cut", ref xCut);
@@ -628,6 +667,7 @@ namespace DalamudPlugin
                                 ImGui.ColorEdit4(Channels[i] + " ColourBubble", ref bubbleColour[i], ImGuiColorEditFlags.NoInputs | ImGuiColorEditFlags.NoLabel); ImGui.NextColumn();
                             }
                             ImGui.Columns(1);
+                            ImGui.EndTabItem();
                         }
                     }
                     
@@ -643,6 +683,7 @@ namespace DalamudPlugin
                     configWindow = false;
                 }
                 if (ImGui.IsItemHovered()) { ImGui.SetTooltip("Changes will only be saved for the current session unless you do this!"); }
+                ImGui.End();
             }
         }
 
