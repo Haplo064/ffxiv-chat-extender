@@ -16,6 +16,7 @@ using System.Runtime.CompilerServices;
 using Dalamud.Configuration;
 using Num = System.Numerics;
 using System.Runtime.InteropServices;
+using System.Collections.Concurrent;
 
 
 namespace DalamudPlugin
@@ -44,15 +45,16 @@ namespace DalamudPlugin
 
             }
 
-            if (pluginInterface.ClientState.LocalPlayer == null)
+            if (pluginInterface.ClientState.LocalPlayer == null || getUI2ObjByName(Marshal.ReadIntPtr(getBaseUIObj(), 0x20), "ChatLog", 1) == IntPtr.Zero)
             {
                 if(getUI2ObjByName(Marshal.ReadIntPtr(getBaseUIObj(), 0x20), "ChatLog", 1) == IntPtr.Zero)
                 {
                     sleep = 1000;
                     nulled = true;
+                    chatLogStuff = IntPtr.Zero;
+                    chatLog = IntPtr.Zero;
+                    chatLogPanel_0 = IntPtr.Zero;
                 }
-                
-
             }
             else
             {
@@ -428,7 +430,7 @@ namespace DalamudPlugin
                             while (CheckDupe(items, tempTitle))
                             { tempTitle += "."; }
 
-                            items.Add(new DynTab(tempTitle, new List<ChatText>(), true));
+                            items.Add(new DynTab(tempTitle, new ConcurrentQueue<ChatText>(), true));
                             tempTitle = "Title";
                         }
                         if (ImGui.IsItemHovered()) { ImGui.SetTooltip("Add a new Tab to the Chat Extender"); }

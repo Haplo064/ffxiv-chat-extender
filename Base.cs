@@ -17,6 +17,7 @@ using Dalamud.Configuration;
 using Num = System.Numerics;
 using Dalamud.Interface;
 using System.Runtime.InteropServices;
+using System.Collections.Concurrent;
 
 //TODO
 //https://github.com/Haplo064/ffxiv-chat-extender/projects/2
@@ -575,7 +576,7 @@ namespace DalamudPlugin
             if (Configuration.Items == null)
             {
                 //Serilog.Log.Information("Null DynTab List");
-                items.Add(new DynTab("XXX", new List<ChatText>(), true));
+                items.Add(new DynTab("XXX", new ConcurrentQueue<ChatText>(), true));
             }
             else
             {
@@ -583,7 +584,7 @@ namespace DalamudPlugin
                 if (Configuration.Items.Count == 0)
                 {
                     //Serilog.Log.Information("Empty DynTab List");
-                    items.Add(new DynTab("YYY", new List<ChatText>(), true));
+                    items.Add(new DynTab("YYY", new ConcurrentQueue<ChatText>(), true));
                 }
                 else
                 {

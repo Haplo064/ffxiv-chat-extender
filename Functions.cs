@@ -17,6 +17,7 @@ using System.Runtime.InteropServices;
 using Dalamud.Configuration;
 using Num = System.Numerics;
 using System.Reflection;
+using System.Collections.Concurrent;
 
 namespace DalamudPlugin
 {
@@ -112,7 +113,7 @@ namespace DalamudPlugin
                 {
                     TabBase babyClone = new TabBase();
                     babyClone.AutoScroll = tabs.AutoScroll;
-                    babyClone.Chat = new List<ChatText>();
+                    babyClone.Chat = new ConcurrentQueue<ChatText>();
                     babyClone.Config = tabs.Config.ToArray();
                     babyClone.Enabled = tabs.Enabled;
                     babyClone.Logs = tabs.Logs.ToArray();
@@ -309,7 +310,7 @@ namespace DalamudPlugin
             }
             catch (Exception e)
             {
-                PluginLog.Log(e.ToString());
+                //PluginLog.Log(e.ToString());
                 return 0;
             }
         }
@@ -480,11 +481,11 @@ namespace DalamudPlugin
                     {
                         if (chan < Channels.Length && tab.Logs[chan])
                         {
-                            tab.Chat.Add(tmp);
+                            tab.Chat.Enqueue(tmp);
                             tab.msg = true;
 
                             if (tab.Chat.Count > 256)
-                            { tab.Chat.RemoveAt(0); }
+                            { tab.Chat.TryDequeue(out ChatText pop); }
 
                             if (tab.Config[3])
                             {
@@ -545,11 +546,11 @@ namespace DalamudPlugin
                 rawtext.Add(wrangler);
 
                 tmp.Text = rawtext;
-                tab.Chat.Add(tmp);
+                tab.Chat.Enqueue(tmp);
 
                 if (tab.Chat.Count > 256)
                 {
-                    tab.Chat.RemoveAt(0);
+                    tab.Chat.TryDequeue(out ChatText pop);
                 }
 
                 if (tab.AutoScroll == true)
@@ -626,7 +627,7 @@ namespace DalamudPlugin
                     translate.Type = PayloadType.RawText;
                     tmp.Text.Add(translate);
 
-                    tab.Chat.Add(tmp);
+                    tab.Chat.Enqueue(tmp);
 
                     if (tab.AutoScroll == true)
                     {
@@ -698,6 +699,7 @@ namespace DalamudPlugin
 
         public void ChatBubbleAdd(ChatText chatText)
         {
+
             for (int i = 0; i < chatBubble.Count; i++)
             {
                 if (chatBubble[i].Sender == chatText.Sender)

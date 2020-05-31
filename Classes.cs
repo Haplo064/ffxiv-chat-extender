@@ -15,6 +15,7 @@ using System.IO;
 using System.Runtime.CompilerServices;
 using Dalamud.Configuration;
 using Num = System.Numerics;
+using System.Collections.Concurrent;
 
 
 namespace DalamudPlugin
@@ -59,7 +60,7 @@ namespace DalamudPlugin
         public class TabBase
         {
             public string Title;
-            public List<ChatText> Chat;
+            public ConcurrentQueue<ChatText> Chat;
             public bool Enabled;
 
             public bool[] Logs = {
@@ -157,7 +158,7 @@ namespace DalamudPlugin
 
         public class DynTab : TabBase
         {
-            public DynTab(string title, List<ChatText> chat, bool enabled)
+            public DynTab(string title, ConcurrentQueue<ChatText> chat, bool enabled)
             {
                 Title = title;
                 Chat = chat;
