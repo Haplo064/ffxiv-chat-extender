@@ -100,82 +100,129 @@ namespace DalamudPlugin
 
             if (!skipfont)
             {
-                ImGui.PushFont(font);
-                if (hideWithChat & Alpha.ToString() != "0")
+                if(font.IsLoaded())
                 {
-                    if (chatWindow)
+                    ImGui.PushFont(font);
+                    if (hideWithChat & Alpha.ToString() != "0")
                     {
-                        if (flickback)
+                        if (chatWindow)
                         {
-                            no_mouse = false;
-                            flickback = false;
-                        }
-                        ImGui.SetNextWindowSize(new Num.Vector2(200, 100), ImGuiCond.FirstUseEver);
-                        ImGui.SetNextWindowBgAlpha(alpha);
-                        ImGui.Begin("Another Window", ref chatWindow, chat_window_flags);
-                        ImGuiTabBarFlags tab_bar_flags = ImGuiTabBarFlags.None;
-
-                        if (overrideChat)
-                        {
-                            ImGui.SetWindowPos(new Num.Vector2(chatLogPosition[0] + 15, chatLogPosition[1] + 10));
-                            ImGui.SetWindowSize(new Num.Vector2(Width - 27, Height - 75));
-                            //Marshal.WriteByte(chatLogPanel_0 + 0x182, BoxOff);
-                        }
-                        else
-                        {
-                            //Marshal.WriteByte(chatLogPanel_0 + 0x182, BoxOn);
-                        }
-
-                        if (ImGui.BeginTabBar("Tabs", tab_bar_flags))
-                        {
-                            int loop = 0;
-                            foreach (var tab in items)
+                            if (flickback)
                             {
-                                if (tab.Enabled)
+                                no_mouse = false;
+                                flickback = false;
+                            }
+                            ImGui.SetNextWindowSize(new Num.Vector2(200, 100), ImGuiCond.FirstUseEver);
+                            ImGui.SetNextWindowBgAlpha(alpha);
+                            ImGui.Begin("Another Window", ref chatWindow, chat_window_flags);
+                            ImGuiTabBarFlags tab_bar_flags = ImGuiTabBarFlags.None;
+
+                            if (overrideChat)
+                            {
+                                ImGui.SetWindowPos(new Num.Vector2(chatLogPosition[0] + 15, chatLogPosition[1] + 10));
+                                ImGui.SetWindowSize(new Num.Vector2(Width - 27, Height - 75));
+                                //Marshal.WriteByte(chatLogPanel_0 + 0x182, BoxOff);
+                            }
+                            else
+                            {
+                                //Marshal.WriteByte(chatLogPanel_0 + 0x182, BoxOn);
+                            }
+
+                            if (ImGui.BeginTabBar("Tabs", tab_bar_flags))
+                            {
+                                int loop = 0;
+                                foreach (var tab in items)
                                 {
-                                    //WIP
-
-                                    if (tab.sel)
+                                    if (tab.Enabled)
                                     {
-                                        ImGui.PushStyleColor(ImGuiCol.Tab, tab_sel);
-                                        ImGui.PushStyleColor(ImGuiCol.Text, tab_sel_text);
-                                        tab.sel = false;
-                                    }
-                                    else if (tab.msg)
-                                    {
-                                        ImGui.PushStyleColor(ImGuiCol.Tab, tab_ind);
-                                        ImGui.PushStyleColor(ImGuiCol.Text, tab_ind_text);
-                                    }
-                                    else
-                                    {
-                                        ImGui.PushStyleColor(ImGuiCol.Tab, tab_norm);
-                                        ImGui.PushStyleColor(ImGuiCol.Text, tab_norm_text);
-                                    }
+                                        //WIP
 
-
-
-                                    if (ImGui.BeginTabItem(tab.Title))
-                                    {
-                                        tab.sel = true;
-
-                                        float footer = (ImGui.GetStyle().ItemSpacing.Y) / 2 + ImGui.GetFrameHeightWithSpacing();
-                                        if (!tab.FilterOn) { footer = 0; }
-                                        ImGui.PushStyleVar(ImGuiStyleVar.ItemSpacing, new Num.Vector2(space_hor, space_ver));
-                                        ImGui.BeginChild("scrolling", new Num.Vector2(0, -footer), false, chat_sub_window_flags);
-
-
-                                        foreach (ChatText line in tab.Chat)
+                                        if (tab.sel)
                                         {
-                                            if (tab.FilterOn)
+                                            ImGui.PushStyleColor(ImGuiCol.Tab, tab_sel);
+                                            ImGui.PushStyleColor(ImGuiCol.Text, tab_sel_text);
+                                            tab.sel = false;
+                                        }
+                                        else if (tab.msg)
+                                        {
+                                            ImGui.PushStyleColor(ImGuiCol.Tab, tab_ind);
+                                            ImGui.PushStyleColor(ImGuiCol.Text, tab_ind_text);
+                                        }
+                                        else
+                                        {
+                                            ImGui.PushStyleColor(ImGuiCol.Tab, tab_norm);
+                                            ImGui.PushStyleColor(ImGuiCol.Text, tab_norm_text);
+                                        }
+
+
+
+                                        if (ImGui.BeginTabItem(tab.Title))
+                                        {
+                                            tab.sel = true;
+
+                                            float footer = (ImGui.GetStyle().ItemSpacing.Y) / 2 + ImGui.GetFrameHeightWithSpacing();
+                                            if (!tab.FilterOn) { footer = 0; }
+                                            ImGui.PushStyleVar(ImGuiStyleVar.ItemSpacing, new Num.Vector2(space_hor, space_ver));
+                                            ImGui.BeginChild("scrolling", new Num.Vector2(0, -footer), false, chat_sub_window_flags);
+
+
+                                            foreach (ChatText line in tab.Chat)
                                             {
-                                                if (ContainsText(line.Text, tab.Filter))
+                                                if (tab.FilterOn)
+                                                {
+                                                    if (ContainsText(line.Text, tab.Filter))
+                                                    {
+                                                        if (tab.Config[0])
+                                                        {
+                                                            if (fontShadow) { ShadowFont(line.Time + " "); }
+                                                            ImGui.TextColored(timeColour, line.Time + " "); ImGui.SameLine();
+                                                        }
+                                                        if (tab.Config[1] && tab.Chans[ConvertForArray(line.Channel)])
+                                                        {
+                                                            if (fontShadow) { ShadowFont(line.ChannelShort + " "); }
+                                                            ImGui.TextColored(chanColour[ConvertForArray(line.Channel)], line.ChannelShort + " "); ImGui.SameLine();
+                                                        }
+                                                        if (line.Sender.Length > 0)
+                                                        {
+                                                            if (fontShadow) { ShadowFont(line.Sender + ":"); }
+                                                            ImGui.TextColored(nameColour, line.Sender + ":"); ImGui.SameLine();
+                                                        }
+
+                                                        int count = 0;
+                                                        foreach (TextTypes textTypes in line.Text)
+                                                        {
+                                                            if (textTypes.Type == PayloadType.RawText)
+                                                            {
+                                                                ImGui.PushStyleColor(ImGuiCol.Text, logColour[line.ChannelColour]);
+                                                                Wrap(textTypes.Text);
+                                                                ImGui.PopStyleColor();
+                                                            }
+
+                                                            if (textTypes.Type == PayloadType.MapLink)
+                                                            {
+                                                                if (ImGui.GetContentRegionAvail().X - 5 - ImGui.CalcTextSize(textTypes.Text).X < 0) { ImGui.Text(""); }
+                                                                if (ImGui.SmallButton(textTypes.Text))
+                                                                {
+                                                                    this.pluginInterface.Framework.Gui.OpenMapWithMapLink((Dalamud.Game.Chat.SeStringHandling.Payloads.MapLinkPayload)textTypes.Payload);
+                                                                }
+                                                            }
+
+                                                            if (count < (line.Text.Count - 1))
+                                                            {
+                                                                ImGui.SameLine(); count++;
+                                                            }
+
+                                                        }
+                                                    }
+                                                }
+                                                else
                                                 {
                                                     if (tab.Config[0])
                                                     {
-                                                        if (fontShadow){ShadowFont(line.Time + " ");}
+                                                        if (fontShadow) { ShadowFont(line.Time + " "); }
                                                         ImGui.TextColored(timeColour, line.Time + " "); ImGui.SameLine();
                                                     }
-                                                    if (tab.Config[1] && tab.Chans[ConvertForArray(line.Channel)]) 
+                                                    if (tab.Config[1] && tab.Chans[ConvertForArray(line.Channel)])
                                                     {
                                                         if (fontShadow) { ShadowFont(line.ChannelShort + " "); }
                                                         ImGui.TextColored(chanColour[ConvertForArray(line.Channel)], line.ChannelShort + " "); ImGui.SameLine();
@@ -207,101 +254,57 @@ namespace DalamudPlugin
 
                                                         if (count < (line.Text.Count - 1))
                                                         {
-                                                            ImGui.SameLine(); count++;
+                                                            ImGui.SameLine();
+                                                            count++;
                                                         }
 
                                                     }
+
                                                 }
+
+
                                             }
-                                            else
+                                            if (tab.Scroll == true)
                                             {
-                                                if (tab.Config[0])
-                                                {
-                                                    if (fontShadow) { ShadowFont(line.Time + " "); }
-                                                    ImGui.TextColored(timeColour, line.Time + " "); ImGui.SameLine();
-                                                }
-                                                if (tab.Config[1] && tab.Chans[ConvertForArray(line.Channel)])
-                                                {
-                                                    if (fontShadow) { ShadowFont(line.ChannelShort + " "); }
-                                                    ImGui.TextColored(chanColour[ConvertForArray(line.Channel)], line.ChannelShort + " "); ImGui.SameLine();
-                                                }
-                                                if (line.Sender.Length > 0)
-                                                {
-                                                    if (fontShadow) { ShadowFont(line.Sender + ":"); }
-                                                    ImGui.TextColored(nameColour, line.Sender + ":"); ImGui.SameLine();
-                                                }
+                                                ImGui.SetScrollHereY();
+                                                tab.Scroll = false;
+                                            }
+                                            ImGui.PopStyleVar();
+                                            ImGui.EndChild();
 
-                                                int count = 0;
-                                                foreach (TextTypes textTypes in line.Text)
-                                                {
-                                                    if (textTypes.Type == PayloadType.RawText)
-                                                    {
-                                                        ImGui.PushStyleColor(ImGuiCol.Text, logColour[line.ChannelColour]);
-                                                        Wrap(textTypes.Text);
-                                                        ImGui.PopStyleColor();
-                                                    }
-
-                                                    if (textTypes.Type == PayloadType.MapLink)
-                                                    {
-                                                        if (ImGui.GetContentRegionAvail().X - 5 - ImGui.CalcTextSize(textTypes.Text).X < 0) { ImGui.Text(""); }
-                                                        if (ImGui.SmallButton(textTypes.Text))
-                                                        {
-                                                            this.pluginInterface.Framework.Gui.OpenMapWithMapLink((Dalamud.Game.Chat.SeStringHandling.Payloads.MapLinkPayload)textTypes.Payload);
-                                                        }
-                                                    }
-
-                                                    if (count < (line.Text.Count - 1))
-                                                    {
-                                                        ImGui.SameLine();
-                                                        count++;
-                                                    }
-
-                                                }
-
+                                            if (tab.FilterOn)
+                                            {
+                                                ImGui.InputText("Filter Text", ref tab.Filter, 999);
+                                                if (ImGui.IsItemHovered()) { ImGui.SetTooltip("Only show lines with this text."); }
                                             }
 
+                                            if (no_mouse2 && !no_mouse)
+                                            {
+                                                Num.Vector2 vMin = ImGui.GetWindowContentRegionMin();
+                                                Num.Vector2 vMax = ImGui.GetWindowContentRegionMax();
 
+                                                vMin.X += ImGui.GetWindowPos().X;
+                                                vMin.Y += ImGui.GetWindowPos().Y + 22;
+                                                vMax.X += ImGui.GetWindowPos().X - 22;
+                                                vMax.Y += ImGui.GetWindowPos().Y;
+
+                                                if (ImGui.IsMouseHoveringRect(vMin, vMax)) { no_mouse = true; flickback = true; }
+                                            }
+                                            tab.msg = false;
+                                            ImGui.EndTabItem();
                                         }
-                                        if (tab.Scroll == true)
-                                        {
-                                            ImGui.SetScrollHereY();
-                                            tab.Scroll = false;
-                                        }
-                                        ImGui.PopStyleVar();
-                                        ImGui.EndChild();
-
-                                        if (tab.FilterOn)
-                                        {
-                                            ImGui.InputText("Filter Text", ref tab.Filter, 999);
-                                            if (ImGui.IsItemHovered()) { ImGui.SetTooltip("Only show lines with this text."); }
-                                        }
-
-                                        if (no_mouse2 && !no_mouse)
-                                        {
-                                            Num.Vector2 vMin = ImGui.GetWindowContentRegionMin();
-                                            Num.Vector2 vMax = ImGui.GetWindowContentRegionMax();
-
-                                            vMin.X += ImGui.GetWindowPos().X;
-                                            vMin.Y += ImGui.GetWindowPos().Y + 22;
-                                            vMax.X += ImGui.GetWindowPos().X - 22;
-                                            vMax.Y += ImGui.GetWindowPos().Y;
-
-                                            if (ImGui.IsMouseHoveringRect(vMin, vMax)) { no_mouse = true; flickback = true; }
-                                        }
-                                        tab.msg = false;
-                                        ImGui.EndTabItem();
+                                        ImGui.PopStyleColor();
+                                        ImGui.PopStyleColor();
                                     }
-                                    ImGui.PopStyleColor();
-                                    ImGui.PopStyleColor();
+                                    loop++;
                                 }
-                                loop++;
+                                ImGui.EndTabBar();
+                                ImGui.End();
                             }
-                            ImGui.EndTabBar();
-                            ImGui.End();
                         }
                     }
+                    ImGui.PopFont();
                 }
-                ImGui.PopFont();
             }
 
 
@@ -693,86 +696,90 @@ namespace DalamudPlugin
         {
             if (!skipfont)
             {
-                ImGui.PushFont(font);
-                if (bubblesWindow)
+                if(font.IsLoaded())
                 {
 
-                    Dalamud.Game.ClientState.Actors.ActorTable actorTable = pluginInterface.ClientState.Actors;
-                    List<Dalamud.Game.ClientState.Actors.Types.Chara> charaTable = new List<Dalamud.Game.ClientState.Actors.Types.Chara>();
-
-
-                    for (var k = 0; k < this.pluginInterface.ClientState.Actors.Length; k++)
+                    ImGui.PushFont(font);
+                    if (bubblesWindow)
                     {
-                        var actor = this.pluginInterface.ClientState.Actors[k];
 
-                        if (actor == null)
-                            continue;
+                        Dalamud.Game.ClientState.Actors.ActorTable actorTable = pluginInterface.ClientState.Actors;
+                        List<Dalamud.Game.ClientState.Actors.Types.Chara> charaTable = new List<Dalamud.Game.ClientState.Actors.Types.Chara>();
 
-                        if (actor is Dalamud.Game.ClientState.Actors.Types.NonPlayer.Npc npc)
+
+                        for (var k = 0; k < this.pluginInterface.ClientState.Actors.Length; k++)
                         {
+                            var actor = this.pluginInterface.ClientState.Actors[k];
 
-                        }
+                            if (actor == null)
+                                continue;
 
-                        if (actor is Dalamud.Game.ClientState.Actors.Types.Chara chara)
-                        {
-
-                            if (drawDebug)
+                            if (actor is Dalamud.Game.ClientState.Actors.Types.NonPlayer.Npc npc)
                             {
-                                if (pluginInterface.Framework.Gui.WorldToScreen(new SharpDX.Vector3(actor.Position.X, actor.Position.Z + AddHeight(chara), actor.Position.Y), out SharpDX.Vector2 pos2))
-                                {
 
-                                    ImGui.SetNextWindowPos(new Num.Vector2(pos2.X + 30, pos2.Y));
-                                    ImGui.Begin(chara.Name + "Info", ImGuiWindowFlags.NoInputs | ImGuiWindowFlags.NoNav | ImGuiWindowFlags.NoTitleBar | ImGuiWindowFlags.NoScrollbar | ImGuiWindowFlags.AlwaysAutoResize);
-                                    ImGui.Text(chara.Name);
-                                    //ImGui.Text("G: " + chara.Customize[(int)Dalamud.Game.ClientState.Actors.CustomizeIndex.Gender].ToString());
-                                    //ImGui.Text("R: " + chara.Customize[(int)Dalamud.Game.ClientState.Actors.CustomizeIndex.Race].ToString());
-                                    //ImGui.Text("H: " + chara.Customize[(int)Dalamud.Game.ClientState.Actors.CustomizeIndex.Height].ToString());
-                                    //ImGui.Text("A: " + AddHeight(chara).ToString());
-                                    //ImGui.Text(k.ToString());
-                                    ImGui.Text(actor.ActorId.ToString());
-                                    ImGui.Text(actor.Address.ToString("X"));
+                            }
+
+                            if (actor is Dalamud.Game.ClientState.Actors.Types.Chara chara)
+                            {
+
+                                if (drawDebug)
+                                {
+                                    if (pluginInterface.Framework.Gui.WorldToScreen(new SharpDX.Vector3(actor.Position.X, actor.Position.Z + AddHeight(chara), actor.Position.Y), out SharpDX.Vector2 pos2))
+                                    {
+
+                                        ImGui.SetNextWindowPos(new Num.Vector2(pos2.X + 30, pos2.Y));
+                                        ImGui.Begin(chara.Name + "Info", ImGuiWindowFlags.NoInputs | ImGuiWindowFlags.NoNav | ImGuiWindowFlags.NoTitleBar | ImGuiWindowFlags.NoScrollbar | ImGuiWindowFlags.AlwaysAutoResize);
+                                        ImGui.Text(chara.Name);
+                                        //ImGui.Text("G: " + chara.Customize[(int)Dalamud.Game.ClientState.Actors.CustomizeIndex.Gender].ToString());
+                                        //ImGui.Text("R: " + chara.Customize[(int)Dalamud.Game.ClientState.Actors.CustomizeIndex.Race].ToString());
+                                        //ImGui.Text("H: " + chara.Customize[(int)Dalamud.Game.ClientState.Actors.CustomizeIndex.Height].ToString());
+                                        //ImGui.Text("A: " + AddHeight(chara).ToString());
+                                        //ImGui.Text(k.ToString());
+                                        ImGui.Text(actor.ActorId.ToString());
+                                        ImGui.Text(actor.Address.ToString("X"));
+                                        ImGui.End();
+                                    }
+
+                                    ImGui.Begin("XXX", ImGuiWindowFlags.NoScrollbar | ImGuiWindowFlags.AlwaysAutoResize);
+                                    ImGui.Text(pluginInterface.ClientState.LocalPlayer.Address.ToString("X"));
                                     ImGui.End();
                                 }
 
-                                ImGui.Begin("XXX", ImGuiWindowFlags.NoScrollbar | ImGuiWindowFlags.AlwaysAutoResize);
-                                ImGui.Text(pluginInterface.ClientState.LocalPlayer.Address.ToString("X"));
-                                ImGui.End();
+
                             }
 
-
-                        }
-
-                        if (actor is Dalamud.Game.ClientState.Actors.Types.PlayerCharacter pc)
-                        {
-                            charaTable.Add(pc);
-                        }
-
-                    }
-
-
-                    foreach (Dalamud.Game.ClientState.Actors.Types.PlayerCharacter actor in charaTable)
-                    {
-                        try
-                        {
-                            foreach (ChatText chat in chatBubble)
+                            if (actor is Dalamud.Game.ClientState.Actors.Types.PlayerCharacter pc)
                             {
+                                charaTable.Add(pc);
+                            }
 
-                                if (chat.Sender == actor.Name && chat.Sender.Length > 0)
+                        }
+
+
+                        foreach (Dalamud.Game.ClientState.Actors.Types.PlayerCharacter actor in charaTable)
+                        {
+                            try
+                            {
+                                foreach (ChatText chat in chatBubble)
                                 {
-                                    DrawChatBubble(actor, chat);
+
+                                    if (chat.Sender == actor.Name && chat.Sender.Length > 0)
+                                    {
+                                        DrawChatBubble(actor, chat);
+                                    }
                                 }
                             }
+                            catch (Exception)
+                            {
+                                //Do nothing
+                            }
+                            CleanupBubbles();
                         }
-                        catch (Exception)
-                        {
-                            //Do nothing
-                        }
-                        CleanupBubbles();
-                    }
 
-                    //ImGui.End();
+                        //ImGui.End();
+                    }
+                    ImGui.PopFont();
                 }
-                ImGui.PopFont();
             }
             else skipfont = false;
         }

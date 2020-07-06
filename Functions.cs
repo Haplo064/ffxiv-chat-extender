@@ -674,6 +674,7 @@ namespace DalamudPlugin
             pluginInterface.Framework.Gui.Chat.OnChatMessage -= Chat_OnChatMessage;
             pluginInterface.CommandManager.RemoveHandler("/cht");
             this.pluginInterface.UiBuilder.OnBuildUi -= ChatUI;
+            this.pluginInterface.UiBuilder.OnBuildUi -= ChatBubbles;
             pluginInterface.UiBuilder.OnOpenConfigUi -= Chat_ConfigWindow;
             goatImage.Dispose();
             this.pluginInterface.UiBuilder.OnBuildFonts -= AddFont;
@@ -689,8 +690,7 @@ namespace DalamudPlugin
         }
 
         public void BuildImGuiFont()
-        {
-            PluginLog.Log("BEFORE CALL: " + font.IsLoaded().ToString());
+        {            PluginLog.Log("BEFORE CALL: " + font.IsLoaded().ToString());
             //IntPtr x = ImGui.GetCurrentContext();
             //ImGui.GetIO().Fonts.Build();
             //ImGui.SetCurrentContext(x);

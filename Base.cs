@@ -53,7 +53,7 @@ namespace DalamudPlugin
         public string tempHigh = "words,to,highlight";
         public float alpha = 0.2f;
         public int fontsize = 15;
-        public bool skipfont = false;
+        public bool skipfont = true;
         public bool nulled = false;
 
         public string lTr = "<<";
@@ -291,6 +291,9 @@ namespace DalamudPlugin
             // Initializing plugin, hooking into chat.
             this.pluginInterface = pluginInterface;
             Configuration = pluginInterface.GetPluginConfig() as ChatExtenderPluginConfiguration ?? new ChatExtenderPluginConfiguration();
+            this.pluginInterface.UiBuilder.OnBuildFonts += AddFont;
+            this.pluginInterface.UiBuilder.RebuildFonts();
+
 
             //Hooks for FFXIV ChatBox
             scan1 = pluginInterface.TargetModuleScanner.ScanText("E8 ?? ?? ?? ?? 41 b8 01 00 00 00 48 8d 15 ?? ?? ?? ?? 48 8b 48 20 e8 ?? ?? ?? ?? 48 8b cf");
@@ -774,8 +777,6 @@ namespace DalamudPlugin
             this.pluginInterface.UiBuilder.OnBuildUi += ChatUI;
             this.pluginInterface.UiBuilder.OnOpenConfigUi += Chat_ConfigWindow;
             this.pluginInterface.UiBuilder.OnBuildUi += ChatBubbles;
-            this.pluginInterface.UiBuilder.OnBuildFonts += AddFont;
-            this.pluginInterface.UiBuilder.RebuildFonts();
         }
 
     }
