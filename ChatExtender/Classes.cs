@@ -147,13 +147,16 @@ namespace DalamudPlugin
 
             public void ComputeNewLineSum()
             {
-                foreach (var line in NeedsUpdateLogs)
+                if (NeedsUpdateLogs.Count > 0)
                 {
-                    CumulativeLengths.Add(CumulativeLengths.LastOrDefault() + line.ApproximateWrappedLineCount);
-                    FilteredLogs.Add(line);
-                }
+                    foreach (var line in NeedsUpdateLogs)
+                    {
+                        CumulativeLengths.Add(CumulativeLengths.LastOrDefault() + line.ApproximateWrappedLineCount);
+                        FilteredLogs.Add(line);
+                    }
 
-                NeedsUpdateLogs = new List<TextLogEntry>();
+                    NeedsUpdateLogs = new List<TextLogEntry>();
+                }
             }
 
             private bool CheckLineFilter(string text)
