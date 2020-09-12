@@ -79,13 +79,11 @@ namespace ChatExtenderTest
 
                 foreach (var payload in a.Sender.Payloads)
                 {
-                    var dataResolver = payload.GetType().GetField("DataResolver", BindingFlags.NonPublic | BindingFlags.Instance);
-                    dataResolver.SetValue(payload, dataManager);
+                    payload.DataResolver = dataManager;
                 }
                 foreach (var payload in a.Message.Payloads)
                 {
-                    var dataResolver = payload.GetType().GetField("DataResolver", BindingFlags.NonPublic | BindingFlags.Instance);
-                    dataResolver.SetValue(payload, dataManager);
+                    payload.DataResolver = dataManager;
                 }
 
                 return a;
