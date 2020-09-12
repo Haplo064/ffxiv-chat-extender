@@ -175,10 +175,11 @@ namespace DalamudPlugin
 
             var lines = tab.FilteredLogs;
             var cumulativeSum = tab.GetCumulativeLineSum();
-            var totalLines = cumulativeSum.LastOrDefault();
-
             var lineHeight = ImGui.CalcTextSize("M").Y;
             var linesInWindow = (int)(ImGui.GetContentRegionAvail().Y / lineHeight);
+
+            var totalLines = cumulativeSum.LastOrDefault() - linesInWindow; // offset to adjust scrolling area height
+
             var totalLineHeight = totalLines * lineHeight;
             var scrollPercent = ImGui.GetScrollMaxY() == 0 ? 0 : ImGui.GetScrollY() / ImGui.GetScrollMaxY();
             var lineStartIndex = (int)(Math.Max(0, (totalLines - linesInWindow)) * scrollPercent);
