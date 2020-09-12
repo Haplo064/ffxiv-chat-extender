@@ -136,33 +136,6 @@ namespace DalamudPlugin
             {75   , new ChannelSettings("NoviceNetworkNotice"   , "[NNW]", new Vector4(1, 1, 1, 1), new Vector4(0, 0, 0, 1))},
         };
 
-        private static Dictionary<string, int> _channelIndexMapping;
-        public static Dictionary<string, int> ChannelIndexMapping
-        {
-            get
-            {
-                if (_channelIndexMapping == null)
-                {
-                    _channelIndexMapping = ChannelSettingsTable.Values.Select((x, i) => new { x, i }).ToDictionary(x => x.x.Name, x => x.i);
-                }
-                return _channelIndexMapping;
-            }
-        }
-
-        private Dictionary<int, ChannelSettings> _indexToChannelMapping;
-        public Dictionary<int, ChannelSettings> IndexToChannelMapping
-        {
-            get
-            {
-                if (_indexToChannelMapping == null)
-                {
-                    _indexToChannelMapping = ChannelSettingsTable.Values.Select((x, i) => new { x, i }).ToDictionary(x => x.i, x => x.x);
-                }
-                return _indexToChannelMapping;
-            }
-        }
-
-
         //FFXIV Chat Box stuff
         [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
         private delegate IntPtr GetBaseUIObjDelegate();
