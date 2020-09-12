@@ -572,14 +572,13 @@ namespace DalamudPlugin
                     }
                     else
                     {
-                        wrappedLines.Add(currentLine);
-
                         if (partWidth > textWidth)
                         {
                             var partString = part.Text;
-                            int i = FindIndexUnderWidth(partString, 0, partString.Length, textWidth);
+                            int i = FindIndexUnderWidth(partString, 0, partString.Length, textWidth - currentWidth);
                             part.Text = partString.Substring(0, i);
-                            wrappedLines.Add(new List<ColorString> { part });
+                            currentLine.Add(part);
+                            wrappedLines.Add(currentLine);
 
                             var remainingString = partString.Substring(i);
                             while (remainingString.Length > 0)
@@ -607,6 +606,7 @@ namespace DalamudPlugin
                         }
                         else
                         {
+                            wrappedLines.Add(currentLine);
                             currentLine = new List<ColorString> { part };
                             currentWidth = partWidth;
                         }
