@@ -167,13 +167,13 @@ namespace DalamudPlugin
 
                     foreach (var textLogEntry in textLogEntries)
                     {
-                        chatBuffer.Add(textLogEntry);
+                        chatBuffer.Enqueue(textLogEntry);
 
                         while (chatBuffer.Count > 200000)
                         {
-                            var removedLogEntry = chatBuffer[0];
-                            chatBuffer.RemoveAt(0);
-                        
+                            TextLogEntry removedLogEntry;
+                            chatBuffer.TryDequeue(out removedLogEntry);
+
                             foreach (var tab in tabs)
                             {
                                 if (tab.EnabledChannels.ContainsKey(channel.Name) && tab.EnabledChannels[channel.Name])

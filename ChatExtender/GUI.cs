@@ -256,10 +256,10 @@ namespace DalamudPlugin
                             ImGui.PushStyleVar(ImGuiStyleVar.FrameRounding, 0);
                             if (ImGui.Button($"##{buttonId++}", textSize))
                             {
-                                new Task(() =>
+                                Task.Run(() =>
                                 {
                                     ProcessLinkClick(str.SourcePayloadContainer.Payload);
-                                }).Start();
+                                });
                             }
                             ImGui.PopStyleVar();
                             ImGui.PopStyleColor();
@@ -312,7 +312,6 @@ namespace DalamudPlugin
                 if (ImGui.InputText("Filter Text", ref tab.Filter, 999))
                 {
                     tab.UpdateFilteredLines();
-                    tab.ScrollOnce = tab.AutoScroll;
                 }
                 if (ImGui.IsItemHovered())
                 {

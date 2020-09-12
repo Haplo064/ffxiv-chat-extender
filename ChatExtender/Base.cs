@@ -39,7 +39,7 @@ namespace DalamudPlugin
 
         public static Vector2 windowSize = new Vector2(100, 100);
         public static TabBase activeTab;
-        public static List<TextLogEntry> chatBuffer = new List<TextLogEntry>();
+        public static ConcurrentQueue<TextLogEntry> chatBuffer = new ConcurrentQueue<TextLogEntry>();
         public static List<TabBase> tabs = new List<TabBase>();
         public static ImFontPtr font;
         public static ImFontPtr outlineFont;

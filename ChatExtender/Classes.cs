@@ -12,6 +12,8 @@ using System.Globalization;
 using System.Linq;
 using System.Numerics;
 using System.Text.RegularExpressions;
+using System.Threading;
+using System.Threading.Tasks;
 
 namespace DalamudPlugin
 {
@@ -92,22 +94,39 @@ namespace DalamudPlugin
             public bool msg = false;
             public bool sel = false;
 
+            private Task updateFilterTask;
+            private bool cancelTask = false;
+
             public void UpdateFilteredLines()
             {
-                FilteredLogs = new List<TextLogEntry>();
-
-                foreach (var chatLine in chatBuffer)
+                if (updateFilterTask != null)
                 {
-                    if (EnabledChannels[chatLine.line.Channel.Name])
+                    cancelTask = true;
+                    updateFilterTask.Wait();
+                    cancelTask = false;
+                }
+                updateFilterTask = Task.Run(() =>
+                {
+                    FilteredLogs = new List<TextLogEntry>();
+
+                    foreach (var chatLine in chatBuffer)
                     {
-                        if (CheckLineFilter(string.Join("", chatLine.Text.Select(x => x.Text))))
+                        if (cancelTask)
                         {
-                            FilteredLogs.Add(chatLine);
+                            return;
+                        }
+                        if (EnabledChannels[chatLine.line.Channel.Name])
+                        {
+                            if (CheckLineFilter(string.Join("", chatLine.Text.Select(x => x.Text))))
+                            {
+                                FilteredLogs.Add(chatLine);
+                            }
                         }
                     }
-                }
 
-                needsRecomputeCumulativeLengths = true;
+                    needsRecomputeCumulativeLengths = true;
+                    ScrollOnce = AutoScroll;
+                });
             }
 
             public List<int> GetCumulativeLineSum()
