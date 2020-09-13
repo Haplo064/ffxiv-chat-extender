@@ -186,7 +186,7 @@ namespace DalamudPlugin
                         !FilterOn ||
                         string.IsNullOrWhiteSpace(Filter) ||
                         CultureInfo.InvariantCulture.CompareInfo.IndexOf(text, Filter, CompareOptions.IgnoreCase) >= 0 ||
-                        Regex.Matches(text, Filter, RegexOptions.IgnoreCase).Count > 0;
+                        Regex.Matches(text, Filter, RegexOptions.IgnoreCase | RegexOptions.Compiled).Count > 0;
                 }
                 catch
                 {
