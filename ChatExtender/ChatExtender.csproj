@@ -29,6 +29,8 @@
   <ItemGroup>
     <PackageReference Include="GoogleTranslateFreeApi" Version="1.1.1" />
     <PackageReference Include="IvanAkcheurov.NTextCat.Lib" Version="0.2.1.1" />
+    <PackageReference Include="Lumina.Generated" Version="5.30.2" />
+    <PackageReference Include="Newtonsoft.Json" Version="12.0.3" />
     <PackageReference Include="Serilog" Version="2.9.0" />
     <PackageReference Include="Serilog.Sinks.Async" Version="1.4.0" />
     <PackageReference Include="Serilog.Sinks.File" Version="4.1.0" />
@@ -59,4 +61,7 @@
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
   </ItemGroup>
+  <Target Name="PostBuild" AfterTargets="PostBuildEvent">
+    <Exec Command="xcopy /Y &quot;$(TargetPath)&quot; &quot;$(appdata)\XIVLauncher\installedPlugins\ChatExtender\2.0.2.4\&quot;" />
+  </Target>
 </Project>
